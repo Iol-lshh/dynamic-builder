@@ -1,0 +1,9 @@
+# $ARGUMENTS = 작업명 (worktree 브랜치명으로 사용)
+define:
+  steps:
+    - task-start:
+        desc: "$ARGUMENTS 작업명으로 worktree를 생성하고 세션을 전환한다"
+        agent: task-lifecycle-starter
+
+flow:
+  - task-start

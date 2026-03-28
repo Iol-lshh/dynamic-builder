@@ -1,0 +1,8 @@
+define:
+  steps:
+    - task-close:
+        desc: "현재 worktree의 작업 내용을 요약하고 사용자 확인 후 worktree를 종료한다"
+        agent: task-lifecycle-closer
+
+flow:
+  - task-close
