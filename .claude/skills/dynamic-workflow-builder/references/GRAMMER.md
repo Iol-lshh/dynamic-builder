@@ -12,7 +12,9 @@ define:
     - {step-name}:
         desc: {task description}
         agent: {agent-name}    # agents/ 에서 로드
-        refs:                  # optional
+        details:                # optional, src/detailss/ 기준 (워크플로우 로컬)
+          - {details-file-path}
+        refs:                  # optional, ~/.claude/references/ 기준 (글로벌)
           - {reference-file-path}
         input:                 # optional
           - {step-name}
@@ -40,9 +42,10 @@ step을 선언한다. step은 desc + agent 조합이다.
 |---|---|---|
 | desc | Y | agent에게 전달할 task 설명 |
 | agent | Y | 사용할 agent 이름 (`~/.claude/agents/` 아래) |
-| refs | N | agent가 참조할 파일 목록 (`~/.claude/references/` 아래) |
-| input | N | 이전 step 산출물을 입력으로 받을 step 이름 목록. 없으면 프로젝트 컨텍스트를 사용 |
-| output | N | 산출물 파일명. 없으면 step 이름으로 자동 결정 (`{step-name}.md`) |
+| details | N | step 실행 시점에 로드하는 지침 파일 목록 (`src/detailss/` 아래, 빌드 시 `references/`로 복사). 워크플로우 전체가 아닌 해당 step에서만 컨텍스트에 포함되며, 에이전트는 이 파일의 지침을 반드시 준수한다 |
+| refs | N | agent가 참조할 파일 목록. 베이스명 → `~/.claude/references/`, `/` 또는 `./` 시작 → 경로로 해석 |
+| input | N | 이전 step 이름 또는 파일 경로. step 이름 → `{output-dir}/{name}.md`, 경로 → 그대로 사용 |
+| output | N | 산출물 경로. 베이스명 → `{output-dir}/{name}`, `/` 시작 → 절대경로. 기본값: `{step-name}.md` |
 
 step은 재사용 가능한 블록이다. 동일 step을 flow에서 여러 번 참조할 수 있다.
 

@@ -1,7 +1,7 @@
 ---
 name: dynamic-agent-builder
 description: perspective + role 템플릿을 빌드하여 완성된 agent를 생성한다. templates → agents/build
-argument-hint: [--watch]
+argument-hint: [--watch|--clean]
 ---
 
 # Dynamic Agent Builder — 에이전트 동적 빌드
@@ -13,6 +13,7 @@ argument-hint: [--watch]
 ```bash
 node ~/.claude/skills/dynamic-agent-builder/scripts/build-agents.js
 node ~/.claude/skills/dynamic-agent-builder/scripts/build-agents.js --watch
+node ~/.claude/skills/dynamic-agent-builder/scripts/build-agents.js --clean
 ```
 
 ## 템플릿 파일 형식

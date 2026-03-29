@@ -15,9 +15,10 @@
  *       perspectives/*.md
  *       roles/*.md
  *       principles/*.md
- *     templates/
- *       domain-analyst.md
- *       usecase-analyst.md
+ *     src/
+ *       templates/
+ *         domain-analyst.md
+ *         usecase-analyst.md
  *     scripts/build-agents.js
  *   agents/
  *     domain-analyst.md        ← 빌드 결과물
@@ -31,13 +32,28 @@ const SKILL_DIR = path.resolve(__dirname, "..");
 const CLAUDE_DIR = path.resolve(SKILL_DIR, "..", "..");
 
 const SRC_DIR = path.join(SKILL_DIR, "src");
-const TEMPLATE_DIR = path.join(SKILL_DIR, "templates");
+const TEMPLATE_DIR = path.join(SRC_DIR, "templates");
 
 const PERSPECTIVES_DIR = path.join(SRC_DIR, "perspectives");
 const ROLES_DIR = path.join(SRC_DIR, "roles");
 const PRINCIPLES_DIR = path.join(SRC_DIR, "principles");
 
 const BUILD_DIR = path.join(CLAUDE_DIR, "agents");
+const BUILD_INDEX_FILE = path.join(SKILL_DIR, ".build-index.local.json");
+
+// ── 빌드 인덱스 ────────────────────────────────────────────
+function loadBuildIndex() {
+  if (!fs.existsSync(BUILD_INDEX_FILE)) return { generated: [] };
+  try {
+    return JSON.parse(fs.readFileSync(BUILD_INDEX_FILE, "utf-8"));
+  } catch {
+    return { generated: [] };
+  }
+}
+
+function saveBuildIndex(index) {
+  fs.writeFileSync(BUILD_INDEX_FILE, JSON.stringify(index, null, 2) + "\n", "utf-8");
+}
 
 // ── 유틸 ──────────────────────────────────────────────────
 function readFile(filePath) {
@@ -146,12 +162,17 @@ function buildAll() {
 
   console.log(`\n🔨 Agent 빌드 시작 (${files.length}개)\n`);
 
+  const index = loadBuildIndex();
+  const nowGenerated = new Set();
+
   let success = 0;
   let failed = 0;
 
   for (const file of files) {
+    const name = path.basename(file, ".md");
     try {
       buildAgent(path.join(TEMPLATE_DIR, file));
+      nowGenerated.add(`${name}.md`);
       success++;
     } catch (err) {
       console.error(`✗ ${file}: ${err.message}`);
@@ -159,7 +180,22 @@ function buildAll() {
     }
   }
 
-  console.log(`\n완료: ${success}개 성공, ${failed}개 실패\n`);
+  // 삭제된 템플릿에 대응하는 agent 파일 정리
+  const previouslyGenerated = new Set(index.generated);
+  let removed = 0;
+  for (const agentFile of previouslyGenerated) {
+    if (nowGenerated.has(agentFile)) continue;
+    const filePath = path.join(BUILD_DIR, agentFile);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      console.log(`✗ removed: agents/${agentFile}`);
+      removed++;
+    }
+  }
+
+  saveBuildIndex({ generated: [...nowGenerated].sort() });
+
+  console.log(`\n완료: ${success}개 성공, ${failed}개 실패, ${removed}개 삭제\n`);
 }
 
 // ── watch 모드 ────────────────────────────────────────────
@@ -179,9 +215,33 @@ function watchMode() {
   }
 }
 
+// ── clean 모드 ────────────────────────────────────────────
+function cleanOnly() {
+  const index = loadBuildIndex();
+  if (index.generated.length === 0) {
+    console.log("인덱스가 비어있습니다. 삭제할 파일 없음.");
+    return;
+  }
+
+  let removed = 0;
+  for (const agentFile of index.generated) {
+    const filePath = path.join(BUILD_DIR, agentFile);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      console.log(`✗ removed: agents/${agentFile}`);
+      removed++;
+    }
+  }
+
+  saveBuildIndex({ generated: [] });
+  console.log(`\n완료: ${removed}개 삭제\n`);
+}
+
 // ── 진입점 ────────────────────────────────────────────────
 const args = process.argv.slice(2);
-if (args.includes("--watch")) {
+if (args.includes("--clean")) {
+  cleanOnly();
+} else if (args.includes("--watch")) {
   watchMode();
 } else {
   buildAll();

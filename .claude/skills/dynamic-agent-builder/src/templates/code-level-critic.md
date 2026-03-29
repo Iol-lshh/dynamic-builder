@@ -6,7 +6,7 @@ disallowedTools: [Edit]
 ---
 
 <Agent>
-  <Perspective name="code-level-design"></Perspective>
+  <Perspective name="code-level"></Perspective>
   <Role name="critic"></Role>
   <Principle name="evidence-first"></Principle>
   <Principle name="output-discipline"></Principle>

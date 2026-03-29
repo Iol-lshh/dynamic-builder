@@ -2,13 +2,13 @@ define:
   steps:
     - page-analyze-A:
         desc: "Controller와 퍼블 HTML/CSS를 분석하여 UI/UX 관점의 화면 명세를 생성한다"
-        refs:
+        details:
           - thymeleaf-guide-index.md
           - hybrids-guide-index.md
         agent: uiux-analyst
     - page-analyze-B:
         desc: "Controller와 퍼블 HTML/CSS를 분석하여 유스케이스 관점의 화면 명세를 생성한다"
-        refs:
+        details:
           - thymeleaf-guide-index.md
           - hybrids-guide-index.md
         agent: usecase-analyst
@@ -51,14 +51,14 @@ define:
         desc: "화면 명세의 UX 패턴과 인터랙션 완전성을 검증하고 점수를 매긴다"
         input:
           - page-synthesis
-        refs:
+        details:
           - thymeleaf-guide-index.md
           - hybrids-guide-index.md
         agent: uiux-critic
 
     - page-implements:
         desc: "화면 명세를 기반으로 Thymeleaf 템플릿과 JS 파일을 생성한다"
-        refs:
+        details:
           - thymeleaf-page-template.md
           - thymeleaf-ui-components.md
           - thymeleaf-data-passing.md
@@ -74,7 +74,7 @@ define:
 
     - page-review:
         desc: "생성된 화면 코드의 패턴 준수, 데이터 바인딩 정확성, 누락 여부를 점검하고 점수를 매긴다"
-        refs:
+        details:
           - thymeleaf-page-template.md
           - thymeleaf-ui-components.md
           - thymeleaf-data-passing.md

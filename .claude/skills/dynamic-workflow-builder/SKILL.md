@@ -1,7 +1,7 @@
 ---
 name: dynamic-workflow-builder
 description: 워크플로우 정의 파일을 읽어 step들을 제어 흐름(flow, parallel, if, retry)에 따라 실행한다.
-argument-hint: <workflow-yaml-path>
+argument-hint: [--watch|--clean|<workflow-yaml-path>]
 ---
 
 # Dynamic Workflow Builder

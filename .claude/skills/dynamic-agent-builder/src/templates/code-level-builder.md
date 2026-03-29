@@ -5,7 +5,7 @@ model: sonnet
 ---
 
 <Agent>
-  <Perspective name="code-level-design"></Perspective>
+  <Perspective name="code-level"></Perspective>
   <Role name="builder"></Role>
   <Principle name="evidence-first"></Principle>
   <Principle name="output-discipline"></Principle>

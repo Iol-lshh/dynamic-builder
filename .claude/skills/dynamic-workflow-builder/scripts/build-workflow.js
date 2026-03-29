@@ -3,17 +3,20 @@
  * Workflow 빌드 스크립트
  *
  * templates/*.yaml 워크플로우 정의를 읽어
- * ~/.claude/commands/ 에 실행 가능한 커맨드 {name}.md를 생성한다.
+ * ~/.claude/skills/{name}/ 에 SKILL.md + references/ 를 생성한다.
  *
  * 사용법:
  *   node build-workflow.js
  *   node build-workflow.js --watch
+ *   node build-workflow.js --clean
  *
  * 입력:
- *   skills/dynamic-workflow-builder/templates/*.yaml
+ *   skills/dynamic-workflow-builder/src/templates/*.yaml
+ *   skills/dynamic-workflow-builder/src/details/*.md
  *
  * 출력:
- *   commands/{name}.md
+ *   skills/{name}/SKILL.md
+ *   skills/{name}/references/{detail}.md
  */
 
 const fs = require("fs");
@@ -22,10 +25,27 @@ const path = require("path");
 // ── 경로 설정 ──────────────────────────────────────────────
 const SKILL_DIR = path.resolve(__dirname, "..");
 const CLAUDE_DIR = path.resolve(SKILL_DIR, "..", "..");
-const TEMPLATE_DIR = path.join(SKILL_DIR, "templates");
-const COMMANDS_DIR = path.join(CLAUDE_DIR, "commands");
+const SRC_DIR = path.join(SKILL_DIR, "src");
+const TEMPLATE_DIR = path.join(SRC_DIR, "templates");
+const DETAILS_DIR = path.join(SRC_DIR, "details");
+const SKILLS_DIR = path.join(CLAUDE_DIR, "skills");
 const AGENTS_BUILD_DIR = path.join(CLAUDE_DIR, "agents");
 const REFERENCES_DIR = path.join(CLAUDE_DIR, "references");
+const BUILD_INDEX_FILE = path.join(SKILL_DIR, ".build-index.local.json");
+
+// ── 빌드 인덱스 ────────────────────────────────────────────
+function loadBuildIndex() {
+  if (!fs.existsSync(BUILD_INDEX_FILE)) return { generated: [] };
+  try {
+    return JSON.parse(fs.readFileSync(BUILD_INDEX_FILE, "utf-8"));
+  } catch {
+    return { generated: [] };
+  }
+}
+
+function saveBuildIndex(index) {
+  fs.writeFileSync(BUILD_INDEX_FILE, JSON.stringify(index, null, 2) + "\n", "utf-8");
+}
 
 // ── YAML 파싱 ──────────────────────────────────────────────
 function parseWorkflowYaml(filePath) {
@@ -72,7 +92,7 @@ function parseSteps(content) {
     // 스텝 선언: "    - step-name:"
     if (trimmed.startsWith("- ") && trimmed.endsWith(":")) {
       const stepName = trimmed.slice(2, -1).trim();
-      const step = { desc: "", agent: "", shell: "", tool: "", refs: [], input: [], output: null, params: {} };
+      const step = { desc: "", agent: "", shell: "", tool: "", refs: [], details: [], input: [], output: null, params: {} };
       steps[stepName] = step;
 
       const stepIndent = indent;
@@ -104,6 +124,8 @@ function parseSteps(content) {
           currentListField = null;
         } else if (pTrimmed === "params:") {
           currentListField = "params";
+        } else if (pTrimmed === "details:") {
+          currentListField = "details";
         } else if (pTrimmed === "refs:") {
           currentListField = "refs";
         } else if (pTrimmed === "input:") {
@@ -264,8 +286,26 @@ function parseFlowLines(lines, startIdx, baseIndent) {
   return { items, nextIdx: i };
 }
 
+// ── 경로 해석 헬퍼 ────────────────────────────────────────
+function isPath(val) {
+  return val.startsWith("/") || val.startsWith("./") || val.startsWith("../");
+}
+
+function resolveRef(ref) {
+  return isPath(ref) ? ref : `~/.claude/references/${ref}`;
+}
+
+function resolveInput(input, outputDir) {
+  return isPath(input) ? input : `${outputDir}/${input}.md`;
+}
+
+function resolveOutput(output, stepName, outputDir) {
+  const file = output || `${stepName}.md`;
+  return file.startsWith("/") ? file : `${outputDir}/${file}`;
+}
+
 // ── flow를 실행 가능한 Markdown 지시문으로 변환 ─────────────
-function flowToMarkdown(items, steps, depth = 0) {
+function flowToMarkdown(items, steps, depth = 0, outputDir = ".local/$ARGUMENTS") {
   const lines = [];
   let sequenceNum = 1;
 
@@ -294,20 +334,25 @@ function flowToMarkdown(items, steps, depth = 0) {
           if (paramStr) lines.push(`${prefix}   - params: ${paramStr}`);
           lines.push(`${prefix}   - 실행: \`${step.tool}\` 도구를 직접 호출한다 (서브에이전트 불필요)`);
         } else {
-          const outputFile = step.output || `${item.name}.md`;
+          const outputFile = resolveOutput(step.output, item.name, outputDir);
           lines.push(`${prefix}${sequenceNum}. **[STEP]** \`${item.name}\``);
           lines.push(`${prefix}   - desc: ${step.desc}`);
           lines.push(
             `${prefix}   - agent: \`${step.agent}\` → Agent 도구의 subagent_type`
           );
+          if (step.details.length > 0) {
+            lines.push(
+              `${prefix}   - details (필수 준수): ${step.details.map((d) => `\`references/${d}\``).join(", ")} — 에이전트는 이 파일에 정의된 지침을 반드시 따른다`
+            );
+          }
           if (step.refs.length > 0) {
             lines.push(
-              `${prefix}   - refs: ${step.refs.map((r) => `\`${r}\``).join(", ")}`
+              `${prefix}   - refs: ${step.refs.map((r) => `\`${resolveRef(r)}\``).join(", ")}`
             );
           }
           if (step.input.length > 0) {
             lines.push(
-              `${prefix}   - input: ${step.input.map((s) => `\`${s}.md\``).join(", ")}`
+              `${prefix}   - input: ${step.input.map((s) => `\`${resolveInput(s, outputDir)}\``).join(", ")}`
             );
           }
           lines.push(`${prefix}   - 산출물: \`${outputFile}\``);
@@ -338,7 +383,7 @@ function flowToMarkdown(items, steps, depth = 0) {
             }
           } else if (child.type === "flow") {
             lines.push(`${prefix}   - (순차 흐름):`);
-            const subLines = flowToMarkdown(child.items, steps, depth + 2);
+            const subLines = flowToMarkdown(child.items, steps, depth + 2, outputDir);
             lines.push(subLines);
           }
         }
@@ -351,7 +396,7 @@ function flowToMarkdown(items, steps, depth = 0) {
           `${prefix}${sequenceNum}. **[RETRY]** 조건: \`${item.condition}\`, 최대: ${item.max}회`
         );
         lines.push(`${prefix}   반복 내부 흐름:`);
-        const retryLines = flowToMarkdown(item.flow, steps, depth + 2);
+        const retryLines = flowToMarkdown(item.flow, steps, depth + 2, outputDir);
         lines.push(retryLines);
         lines.push(
           `${prefix}   → 내부 흐름 실행 후 조건(\`${item.condition}\`)을 평가한다. true이면 반복, false이면 다음으로 진행. 최대 ${item.max}회.`
@@ -365,7 +410,7 @@ function flowToMarkdown(items, steps, depth = 0) {
           `${prefix}${sequenceNum}. **[IF]** 조건: \`${item.condition}\``
         );
         lines.push(`${prefix}   조건이 true일 때 실행:`);
-        const ifLines = flowToMarkdown(item.flow, steps, depth + 2);
+        const ifLines = flowToMarkdown(item.flow, steps, depth + 2, outputDir);
         lines.push(ifLines);
         sequenceNum++;
         break;
@@ -388,8 +433,8 @@ function flowToMarkdown(items, steps, depth = 0) {
   return lines.join("\n");
 }
 
-// ── 커맨드 Markdown 생성 ───────────────────────────────────
-function generateCommandMd(name, parsed) {
+// ── 스킬 Markdown 생성 ────────────────────────────────────
+function generateSkillMd(name, parsed) {
   const { steps, flowItems, outputDir, raw } = parsed;
 
   const stepTable = Object.entries(steps)
@@ -402,16 +447,24 @@ function generateCommandMd(name, parsed) {
 
   // 검증
   const warnings = [];
-  for (const [stepName, { agent, shell, tool, refs }] of Object.entries(steps)) {
+  for (const [stepName, { agent, shell, tool, refs, details }] of Object.entries(steps)) {
     if (!shell && !tool && !fs.existsSync(path.join(AGENTS_BUILD_DIR, `${agent}.md`))) {
       warnings.push(
         `- ${stepName}: agent \`${agent}\` not found in \`${AGENTS_BUILD_DIR}/\``
       );
     }
     for (const ref of refs) {
+      if (isPath(ref)) continue; // 경로 기반은 런타임에 해석
       if (!fs.existsSync(path.join(REFERENCES_DIR, ref))) {
         warnings.push(
           `- ${stepName}: ref \`${ref}\` not found in \`${REFERENCES_DIR}/\``
+        );
+      }
+    }
+    for (const det of details) {
+      if (!fs.existsSync(path.join(DETAILS_DIR, det))) {
+        warnings.push(
+          `- ${stepName}: details \`${det}\` not found in \`${DETAILS_DIR}/\``
         );
       }
     }
@@ -422,12 +475,17 @@ function generateCommandMd(name, parsed) {
       ? `\n> **검증 경고:**\n${warnings.map((w) => `> ${w}`).join("\n")}\n`
       : "";
 
-  const flowInstructions = flowToMarkdown(flowItems, steps);
+  const flowInstructions = flowToMarkdown(flowItems, steps, 0, outputDir);
 
-  return `# Workflow: ${name}
+  return `---
+name: ${name}
+description: Workflow: ${name}
+---
 
-> 자동 생성된 커맨드입니다. 직접 수정하지 마세요.
-> 소스: \`~/.claude/skills/dynamic-workflow-builder/template/${name}.yaml\`
+# Workflow: ${name}
+
+> 자동 생성된 스킬입니다. 직접 수정하지 마세요.
+> 소스: \`~/.claude/skills/dynamic-workflow-builder/src/templates/${name}.yaml\`
 ${warningSection}
 ## 산출물 디렉토리
 
@@ -451,6 +509,7 @@ ${flowInstructions}
   - agent 파일: \`~/.claude/agents/{agent}.md\`를 읽어 프롬프트에 포함
   - desc를 task 설명으로 서브에이전트에 전달
   - refs 파일들(\`~/.claude/references/\`)을 컨텍스트로 서브에이전트에 제공
+  - details 파일들(\`references/\`)은 **반드시 준수해야 할 지침**이다. 에이전트 프롬프트에 포함하고 "이 details 파일의 지침을 반드시 따르라"고 명시한다
   - input step들의 산출물을 입력으로 전달
   - \`$STEP_NAME\`으로 step 이름을 전달하여 산출물 파일명을 결정
 - **[SHELL]**은 Bash 도구를 직접 호출한다. 서브에이전트 없이 오케스트레이터가 실행한다.
@@ -470,6 +529,14 @@ ${raw.trim()}
 `;
 }
 
+// ── 스킬 디렉토리 삭제 ─────────────────────────────────────
+function removeSkillDir(name) {
+  const skillPath = path.join(SKILLS_DIR, name);
+  if (!fs.existsSync(skillPath)) return false;
+  fs.rmSync(skillPath, { recursive: true, force: true });
+  return true;
+}
+
 // ── 빌드 ──────────────────────────────────────────────────
 function buildWorkflow(templateFile) {
   const name = path.basename(templateFile, ".yaml");
@@ -479,15 +546,32 @@ function buildWorkflow(templateFile) {
     throw new Error("step 정의를 찾을 수 없습니다");
   }
 
-  const md = generateCommandMd(name, parsed);
+  const skillOutDir = path.join(SKILLS_DIR, name);
+  const refsOutDir = path.join(skillOutDir, "references");
 
-  fs.mkdirSync(COMMANDS_DIR, { recursive: true });
+  fs.mkdirSync(skillOutDir, { recursive: true });
 
-  const outFile = path.join(COMMANDS_DIR, `${name}.md`);
-  fs.writeFileSync(outFile, md, "utf-8");
+  // details 파일이 있을 때만 references/ 생성
+  const allDetails = new Set(
+    Object.values(parsed.steps).flatMap((s) => s.details)
+  );
+  if (allDetails.size > 0) {
+    fs.mkdirSync(refsOutDir, { recursive: true });
+    for (const det of allDetails) {
+      const src = path.join(DETAILS_DIR, det);
+      const dst = path.join(refsOutDir, det);
+      if (fs.existsSync(src)) {
+        fs.copyFileSync(src, dst);
+      }
+    }
+  }
 
+  const md = generateSkillMd(name, parsed);
+  fs.writeFileSync(path.join(skillOutDir, "SKILL.md"), md, "utf-8");
+
+  const actionNote = allDetails.size > 0 ? `, ${allDetails.size} details` : "";
   console.log(
-    `  ${name} → commands/${name}.md (${Object.keys(parsed.steps).length} steps)`
+    `  ${name} → skills/${name}/SKILL.md (${Object.keys(parsed.steps).length} steps${actionNote})`
   );
 }
 
@@ -508,12 +592,18 @@ function buildAll() {
 
   console.log(`\nWorkflow build (${files.length})\n`);
 
+  const index = loadBuildIndex();
+  const previouslyGenerated = new Set(index.generated);
+  const nowGenerated = new Set();
+
   let success = 0;
   let failed = 0;
 
   for (const file of files) {
+    const name = path.basename(file, path.extname(file));
     try {
       buildWorkflow(path.join(TEMPLATE_DIR, file));
+      nowGenerated.add(name);
       success++;
     } catch (err) {
       console.error(`  ${file}: ${err.message}`);
@@ -521,7 +611,19 @@ function buildAll() {
     }
   }
 
-  console.log(`\nDone: ${success} ok, ${failed} fail\n`);
+  // 인덱스에 있지만 현재 템플릿에 없는 스킬 디렉토리 삭제
+  let removed = 0;
+  for (const name of previouslyGenerated) {
+    if (nowGenerated.has(name)) continue;
+    if (removeSkillDir(name)) {
+      console.log(`  removed: skills/${name}/`);
+      removed++;
+    }
+  }
+
+  saveBuildIndex({ generated: [...nowGenerated].sort() });
+
+  console.log(`\nDone: ${success} ok, ${failed} fail, ${removed} removed\n`);
 }
 
 // ── watch 모드 ────────────────────────────────────────────
@@ -539,9 +641,31 @@ function watchMode() {
   }
 }
 
+// ── clean 모드 ────────────────────────────────────────────
+function cleanOnly() {
+  const index = loadBuildIndex();
+  if (index.generated.length === 0) {
+    console.log("인덱스가 비어있습니다. 삭제할 파일 없음.");
+    return;
+  }
+
+  let removed = 0;
+  for (const name of index.generated) {
+    if (removeSkillDir(name)) {
+      console.log(`  removed: skills/${name}/`);
+      removed++;
+    }
+  }
+
+  saveBuildIndex({ generated: [] });
+  console.log(`\nDone: ${removed} removed\n`);
+}
+
 // ── 진입점 ────────────────────────────────────────────────
 const args = process.argv.slice(2);
-if (args.includes("--watch")) {
+if (args.includes("--clean")) {
+  cleanOnly();
+} else if (args.includes("--watch")) {
   watchMode();
 } else {
   buildAll();

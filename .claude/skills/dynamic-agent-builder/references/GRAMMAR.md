@@ -294,7 +294,7 @@ model: sonnet
 ---
 
 <Agent>
-  <Perspective name="code-level-design"></Perspective>
+  <Perspective name="code-level"></Perspective>
   <Role name="implementor"></Role>
   <Principle name="common"></Principle>
 </Agent>

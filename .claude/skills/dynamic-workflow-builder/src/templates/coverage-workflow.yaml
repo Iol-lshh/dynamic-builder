@@ -2,12 +2,12 @@ define:
   steps:
     - coverage-analyze-A:
         desc: "컨디션 커버리지 누락 분기를 유스케이스 관점에서 식별한다"
-        refs:
+        details:
           - condition-coverage-guide.md
         agent: usecase-analyst
     - coverage-analyze-B:
         desc: "컨디션 커버리지 누락 분기를 코드 레벨 관점에서 식별한다"
-        refs:
+        details:
           - condition-coverage-guide.md
         agent: code-level-analyst
 
@@ -54,7 +54,7 @@ define:
 
     - coverage-test:
         desc: "컨디션 커버리지 테스트를 작성한다"
-        refs:
+        details:
           - condition-coverage-guide.md
         input:
           - coverage-plan
@@ -62,7 +62,7 @@ define:
 
     - coverage-review:
         desc: "커버리지 달성 여부를 JaCoCo 기반으로 확인하고 점수를 매긴다"
-        refs:
+        details:
           - condition-coverage-guide.md
         agent: code-level-critic
 
