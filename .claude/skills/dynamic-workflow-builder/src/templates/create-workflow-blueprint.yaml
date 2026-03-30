@@ -76,13 +76,22 @@ define:
           - reconcile
           - design-review
         agent: workflow-design-builder
-    - build-review:
-        desc: "생성된 파일의 문법, 참조 무결성, 빌드 가능성을 채점하고 개선 방향을 제시한다"
+    - build-validate:
+        desc: "생성된 파일의 YAML 문법, 참조 무결성, 빌드 가능성을 검증한다 (합격/불합격)"
         details:
           - workflow-template-guide.md
           - agent-template-guide.md
         input:
           - build
+        agent: workflow-design-validator
+    - build-review:
+        desc: "검증 통과된 산출물의 설계 품질을 채점하고 개선 방향을 제시한다"
+        details:
+          - workflow-template-guide.md
+          - agent-template-guide.md
+        input:
+          - build
+          - build-validate
         agent: workflow-design-evaluator
 
 flow:
@@ -108,5 +117,6 @@ flow:
       max: 3
       flow:
         - build
+        - build-validate
         - build-review
   - hitl

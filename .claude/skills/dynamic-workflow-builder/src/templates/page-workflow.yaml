@@ -20,16 +20,19 @@ define:
           - page-analyze-B
         agent: tradeoff-advisor
     - page-constraint-advise:
-        desc: "화면 구현 제약 요인과 우회 방안을 조언한다"
+        desc: "화면 구현 제약 요인과 우회 방안을 조언한다 (tradeoff 조언과 중복 방지)"
         input:
           - page-analyze-A
           - page-analyze-B
+          - page-tradeoff-advise
         agent: constraint-bypass-advisor
     - page-scope-reduction-advise:
-        desc: "최소 범위로 화면 요구사항을 충족하는 방안을 조언한다"
+        desc: "최소 범위로 화면 요구사항을 충족하는 방안을 조언한다 (기존 조언과 중복 방지)"
         input:
           - page-analyze-A
           - page-analyze-B
+          - page-tradeoff-advise
+          - page-constraint-advise
         agent: scope-reduction-advisor
 
     - page-synthesis:
@@ -56,8 +59,8 @@ define:
           - hybrids-guide-index.md
         agent: uiux-evaluator
 
-    - page-implements:
-        desc: "화면 명세를 기반으로 Thymeleaf 템플릿과 JS 파일을 생성한다"
+    - page-plan:
+        desc: "화면 구현 계획을 수립한다 (컴포넌트 구조, 데이터 바인딩, 이벤트 흐름)"
         details:
           - thymeleaf-page-template.md
           - thymeleaf-ui-components.md
@@ -70,10 +73,14 @@ define:
         input:
           - page-usecase-review
           - page-uiux-review
-        agent: uiux-implementor
-
-    - page-review:
-        desc: "생성된 화면 코드의 패턴 준수, 데이터 바인딩 정확성, 누락 여부를 채점하고 개선 방향을 제시한다"
+        agent: uiux-planner
+    - page-plan-advise:
+        desc: "화면 구현 계획의 최소 범위 접근을 조언한다"
+        input:
+          - page-plan
+        agent: scope-reduction-advisor
+    - page-plan-validate:
+        desc: "화면 구현 계획의 패턴 준수와 완전성을 검증한다 (합격/불합격)"
         details:
           - thymeleaf-page-template.md
           - thymeleaf-ui-components.md
@@ -83,9 +90,63 @@ define:
           - hybrids-store-state.md
           - hybrids-ui-patterns.md
           - hybrids-page-entry.md
+        input:
+          - page-plan
+          - page-plan-advise
+        agent: uiux-validator
+    - page-plan-review:
+        desc: "검증 통과된 구현 계획의 품질을 채점하고 개선 방향을 제시한다"
+        input:
+          - page-plan
+          - page-plan-validate
+        agent: uiux-evaluator
+
+    - page-implements:
+        desc: "화면 명세를 기반으로 Thymeleaf 템플릿과 JS 파일을 생성한다"
+        details:
+          - thymeleaf-page-template.md
+          - thymeleaf-ui-components.md
+          - thymeleaf-data-passing.md
+          - js-module-structure.md
+          - hybrids-component-structure.md
+          - hybrids-store-state.md
+          - hybrids-ui-patterns.md
+          - hybrids-page-entry.md
+        input:
+          - page-plan
+          - page-plan-review
+        agent: uiux-implementor
+
+    - page-validate:
+        desc: "생성된 화면 코드의 패턴 준수, 데이터 바인딩 정확성, 누락 여부를 검증한다 (합격/불합격)"
+        details:
+          - thymeleaf-page-template.md
+          - thymeleaf-ui-components.md
+          - thymeleaf-data-passing.md
+          - js-module-structure.md
+          - hybrids-component-structure.md
+          - hybrids-store-state.md
+          - hybrids-ui-patterns.md
+          - hybrids-page-entry.md
+        agent: uiux-validator
+    - page-review:
+        desc: "검증 통과된 화면 코드의 설계 품질을 채점하고 개선 방향을 제시한다"
+        details:
+          - thymeleaf-page-template.md
+          - thymeleaf-ui-components.md
+          - thymeleaf-data-passing.md
+          - js-module-structure.md
+          - hybrids-component-structure.md
+          - hybrids-store-state.md
+          - hybrids-ui-patterns.md
+          - hybrids-page-entry.md
+        input:
+          - page-implements
+          - page-validate
         agent: uiux-evaluator
 
 flow:
+  # Phase 1: 분석
   - retry:
       condition: score < 80
       max: 3
@@ -107,10 +168,22 @@ flow:
             condition: score >= 80
             flow: page-uiux-review
   - hitl
+  # Phase 2: 계획
+  - retry:
+      condition: score < 80
+      max: 3
+      flow:
+        - page-plan
+        - page-plan-advise
+        - page-plan-validate
+        - page-plan-review
+  - hitl
+  # Phase 3: 구현
   - retry:
       condition: score < 80
       max: 2
       flow:
         - page-implements
+        - page-validate
         - page-review
   - hitl
