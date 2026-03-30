@@ -3,6 +3,7 @@ define:
     - analyze:
         desc: "사용자 요구사항을 분석하여 필요한 워크플로우 구조와 에이전트 구성을 파악한다"
         details:
+          - workflow-complexity-guide.md
           - workflow-template-guide.md
           - agent-template-guide.md
         agent: workflow-design-analyst
