@@ -18,16 +18,19 @@ define:
           - coverage-analyze-B
         agent: tradeoff-advisor
     - coverage-constraint-advise:
-        desc: "커버리지 달성의 제약 요인과 우회 방안을 조언한다"
+        desc: "커버리지 달성의 제약 요인과 우회 방안을 조언한다 (tradeoff 조언과 중복 방지)"
         input:
           - coverage-analyze-A
           - coverage-analyze-B
+          - coverage-tradeoff-advise
         agent: constraint-bypass-advisor
     - coverage-scope-reduction-advise:
-        desc: "최소 범위로 커버리지 목표를 달성하는 방안을 조언한다"
+        desc: "최소 범위로 커버리지 목표를 달성하는 방안을 조언한다 (기존 조언과 중복 방지)"
         input:
           - coverage-analyze-A
           - coverage-analyze-B
+          - coverage-tradeoff-advise
+          - coverage-constraint-advise
         agent: scope-reduction-advisor
 
     - coverage-synthesis:
@@ -46,10 +49,16 @@ define:
           - coverage-synthesis
         agent: test-analyst
 
-    - coverage-plan-review:
-        desc: "커버리지 테스트 계획의 완전성과 정확성을 채점하고 개선 방향을 제시한다"
+    - coverage-plan-validate:
+        desc: "커버리지 테스트 계획의 완전성과 규칙 준수를 검증한다 (합격/불합격)"
         input:
           - coverage-plan
+        agent: usecase-validator
+    - coverage-plan-review:
+        desc: "검증 통과된 테스트 계획의 품질을 채점하고 개선 방향을 제시한다"
+        input:
+          - coverage-plan
+          - coverage-plan-validate
         agent: usecase-evaluator
 
     - coverage-test:
@@ -60,10 +69,18 @@ define:
           - coverage-plan
         agent: test-implementor
 
-    - coverage-review:
-        desc: "커버리지 달성 여부를 JaCoCo 기반으로 채점하고 개선 방향을 제시한다"
+    - coverage-validate:
+        desc: "테스트 컴파일, 실행 통과, JaCoCo 커버리지 기준 충족을 검증한다 (합격/불합격)"
         details:
           - condition-coverage-guide.md
+        agent: code-level-validator
+    - coverage-review:
+        desc: "검증 통과된 테스트의 품질을 채점하고 개선 방향을 제시한다"
+        details:
+          - condition-coverage-guide.md
+        input:
+          - coverage-test
+          - coverage-validate
         agent: code-level-evaluator
 
 flow:
@@ -72,14 +89,19 @@ flow:
       max: 3
       flow:
         - parallel:
-          - coverage-analyze-A
-          - coverage-analyze-B
-        - parallel:
-          - coverage-tradeoff-advise
-          - coverage-constraint-advise
-          - coverage-scope-reduction-advise
+          - flow:
+            - coverage-analyze-A
+            - coverage-tradeoff-advise
+            - coverage-constraint-advise
+            - coverage-scope-reduction-advise
+          - flow:
+            - coverage-analyze-B
+            - coverage-tradeoff-advise
+            - coverage-constraint-advise
+            - coverage-scope-reduction-advise
         - coverage-synthesis
         - coverage-plan
+        - coverage-plan-validate
         - coverage-plan-review
   - hitl
   - retry:
@@ -87,5 +109,6 @@ flow:
       max: 2
       flow:
         - coverage-test
+        - coverage-validate
         - coverage-review
   - hitl

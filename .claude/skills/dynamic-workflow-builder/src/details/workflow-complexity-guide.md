@@ -23,7 +23,6 @@ create-workflow-blueprint가 사용자 요구사항을 분석한 뒤, 아래 기
 ```yaml
 flow:
   - execute
-  - review
   - hitl
 ```
 
@@ -40,7 +39,7 @@ flow:
 
 **스텝 구성:**
 ```
-execute (builder/executor) → review (evaluator) → hitl
+execute → hitl
 ```
 
 ---
@@ -57,12 +56,16 @@ flow:
       max: 3
       flow:
         - parallel:
-          - analyze-A
-          - analyze-B
-        - parallel:
-          - advise-X
-          - advise-Y
-          - advise-Z
+          - flow:
+            - analyze-A
+            - advise-X
+            - advise-Y
+            - advise-Z
+          - flow:
+            - analyze-B
+            - advise-X
+            - advise-Y
+            - advise-Z
         - synthesize
         - review
   - hitl
@@ -71,7 +74,7 @@ flow:
 **특징:**
 - 스텝 5~8개
 - 병렬 분석 2~3개
-- 병렬 조언 2~3개 (tradeoff / constraint-bypass / scope-reduction)
+- 조언 2~3개 (tradeoff / constraint-bypass / scope-reduction)
 - reconciler로 통합
 - evaluator로 품질 게이트
 - retry 1회 (분석 루프)
@@ -85,12 +88,12 @@ flow:
 
 **스텝 구성:**
 ```
-parallel(analyst × N) → parallel(advisor × 3) → reconciler → evaluator → hitl
+parallel((analyst → advisor_A → advisor_B → advisor_C) × N) → reconciler → evaluator → hitl
 ```
 
 ---
 
-## Tier 3 — 병렬 분석 → 통합 → 설계 → 구현 → 검증
+## Tier 3 — 병렬 분석 → 통합 → 평가 → 계획 → 계획 검증 → 계획 평가 → 구현 → 구현 검증 → 구현 평가
 
 **언제:** 분석부터 파일 생성까지 전체 라이프사이클을 커버하는 작업. 설계와 구현이 모두 필요하고, 각 단계에서 품질 게이트를 거쳐야 한다.
 
@@ -103,33 +106,41 @@ flow:
       max: 3
       flow:
         - parallel:
-          - analyze-A
-          - analyze-B
-        - parallel:
-          - advise-X
-          - advise-Y
-          - advise-Z
+          - flow:
+            - analyze-A
+            - advise-X
+            - advise-Y
+            - advise-Z
+          - flow:
+            - analyze-B
+            - advise-X
+            - advise-Y
+            - advise-Z
         - synthesize
         - review
   - hitl
-  # Phase 2: 설계
+  # Phase 2: 계획
   - retry:
       condition: score < 80
       max: 3
       flow:
         - plan
-        - parallel:
-          - plan-advise
-          - plan-review
+        - plan-advise
+        - plan-validate
+        - if:
+            condition: true
+            flow: plan-review
   - hitl
   # Phase 3: 구현
   - retry:
-      condition: score < 80
+      condition: false || score < 80
       max: 3
       flow:
         - build
-        - validate
-        - build-review
+        - build-validate
+        - if:
+            condition: true
+            flow: build-review
   - hitl
 ```
 
@@ -150,8 +161,8 @@ flow:
 
 **스텝 구성:**
 ```
-Phase 1: parallel(analyst × N) → parallel(advisor × 3) → reconciler → evaluator → hitl
-Phase 2: planner → parallel(advisor, evaluator) → hitl
+Phase 1: parallel((analyst → advisor_A → advisor_B → advisor_C) × N) → reconciler → evaluator → hitl
+Phase 2: planner → advisor → validator → evaluator → hitl
 Phase 3: builder → validator → evaluator → hitl
 ```
 
@@ -161,15 +172,15 @@ Phase 3: builder → validator → evaluator → hitl
 
 각 티어에서 사용하는 role의 조합:
 
-| 페이즈 | 사용 Role | 목적 |
-|--------|-----------|------|
-| 분석 | analyst (× N, 병렬) | 다관점 현황 파악 |
-| 조언 | advisor (× 3, 병렬) | tradeoff · constraint · scope-reduction |
-| 통합 | reconciler (× 1) | 분석 + 조언 산출물 병합 |
-| 평가 | evaluator (× 1) | score 기반 품질 게이트 |
-| 설계 | planner (× 1) | 실행 계획 수립 |
-| 구현 | builder / executor (× 1) | 파일 생성 또는 명세 실행 |
-| 검증 | validator (× 1) | 규칙 준수 합격/불합격 |
+| 페이즈 | 사용 Role                | 목적 |
+|-----|------------------------|------|
+| 분석  | analyst (× N, 병렬)      | 다관점 현황 파악 |
+| 조언  | advisor (× 3)        | tradeoff · constraint · scope-reduction |
+| 통합  | reconciler (× 1)       | 분석 + 조언 산출물 병합 |
+| 평가  | evaluator (× 1)        | score 기반 품질 게이트 |
+| 계획  | planner (× 1)          | 실행 계획 수립 |
+| 구현  | builder / executor (× 1) | 파일 생성 또는 명세 실행 |
+| 검증  | validator (× 1)        | 규칙 준수 합격/불합격 |
 
 **조언 3인방 (Tier 2, 3 공통):**
 - `tradeoff-advisor` — 선택지 비교, 장단점
@@ -188,7 +199,7 @@ Phase 3: builder → validator → evaluator → hitl
   │
   ├─ 파일 생성/수정이 최종 결과에 포함?
   │   ├─ NO  → Tier 2 (분석 → 통합 → 평가)
-  │   └─ YES → Tier 3 (분석 → 설계 → 구현)
+  │   └─ YES → Tier 3 (분석 → 계획 → 구현)
   │
   └─ 판단 불가 → 사용자에게 확인 (hitl)
 ```
