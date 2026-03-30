@@ -31,8 +31,8 @@ define:
         agent: code-level-implementor
 
     - quality-review:
-        desc: "구현된 코드의 품질을 분석하고 위반 항목을 우선순위와 함께 식별하며 채점한다"
-        agent: code-level-critic
+        desc: "구현된 코드의 품질을 채점하고 개선 방향을 제시한다"
+        agent: code-level-evaluator
 
 flow:
   - parallel:

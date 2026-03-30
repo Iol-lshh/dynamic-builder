@@ -71,13 +71,13 @@ agents/
 
 ## 병렬 활용 원칙
 
-동일한 role에 다른 perspective를 적용하여 병렬 실행하면, 각 관점에서 상호 보완적인 결과를 얻을 수 있다. 병렬 결과는 critic role이 merge한다.
+동일한 role에 다른 perspective를 적용하여 병렬 실행하면, 각 관점에서 상호 보완적인 결과를 얻을 수 있다. 병렬 결과는 reconciler role이 merge한다.
 
 ```
 usecase-analyst  ──→  유스케이스 수준 분석
 domain-analyst   ──→  도메인 모델 수준 분석
                         ↓
-                  critic가 merge
+                  reconciler가 merge
 ```
 
 ## src 작성법
@@ -176,7 +176,8 @@ agent가 무엇을 담당하고 어떻게 행동하는지 정의한다.
 | Role | 요약 | 도구 제약 |
 |---|---|---|
 | `analyst` | 요구사항 분석, 보고서 생성 (읽기 전용) | Edit 사용 금지 |
-| `critic` | 산출물 검증, 채점, 위반 항목 식별 | Edit 사용 금지 |
+| `validator` | 산출물 규칙 준수 여부 검증, 합격/불합격 판정 | Edit 사용 금지 |
+| `evaluator` | 산출물 품질 채점, 개선 방향 제시 | Edit 사용 금지 |
 | `implementor` | 명세/테스트 기반 최소 구현 | 없음 |
 
 ### Principle (`src/principles/`)

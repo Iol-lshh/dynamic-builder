@@ -4,6 +4,8 @@ define:
     - task-start:
         desc: "$ARGUMENTS 작업명으로 worktree를 생성하고 세션을 전환한다"
         agent: task-lifecycle-starter
+        details:
+          - worktree-entry.md
 
 flow:
   - task-start

@@ -1,0 +1,112 @@
+define:
+  steps:
+    - analyze:
+        desc: "사용자 요구사항을 분석하여 필요한 워크플로우 구조와 에이전트 구성을 파악한다"
+        details:
+          - workflow-complexity-guide.md
+          - workflow-template-guide.md
+          - agent-template-guide.md
+        agent: workflow-design-analyst
+
+    - wf-plan:
+        desc: "워크플로우 YAML 구조를 설계한다 (스텝 정의, 제어 흐름, 데이터 흐름)"
+        details:
+          - workflow-template-guide.md
+        input:
+          - analyze
+        agent: workflow-design-planner
+    - wf-review:
+        desc: "워크플로우 설계의 완전성과 문법 준수를 채점하고 개선 방향을 제시한다"
+        details:
+          - workflow-template-guide.md
+        input:
+          - wf-plan
+        agent: workflow-design-evaluator
+    - wf-advise:
+        desc: "워크플로우 구조의 트레이드오프를 분석하고 대안을 조언한다"
+        input:
+          - wf-plan
+          - wf-review
+        agent: tradeoff-advisor
+
+    - ag-plan:
+        desc: "필요한 에이전트 템플릿을 설계한다 (perspective/role/principle 조합, 기존 재사용 우선)"
+        details:
+          - agent-template-guide.md
+        input:
+          - analyze
+        agent: agent-composition-planner
+    - ag-review:
+        desc: "에이전트 구성의 적절성과 기존 컴포넌트 재사용률을 채점하고 개선 방향을 제시한다"
+        details:
+          - agent-template-guide.md
+        input:
+          - ag-plan
+        agent: agent-composition-evaluator
+    - ag-advise:
+        desc: "에이전트 구성의 최소화 방안을 조언한다"
+        input:
+          - ag-plan
+          - ag-review
+        agent: scope-reduction-advisor
+
+    - reconcile:
+        desc: "워크플로우 설계와 에이전트 구성을 통합하여 최종 설계를 도출한다"
+        input:
+          - wf-plan
+          - wf-advise
+          - ag-plan
+          - ag-advise
+        agent: workflow-design-reconciler
+    - design-review:
+        desc: "통합된 설계의 완전성, 일관성, 실현 가능성을 채점하고 개선 방향을 제시한다"
+        details:
+          - workflow-template-guide.md
+          - agent-template-guide.md
+        input:
+          - reconcile
+        agent: workflow-design-evaluator
+
+    - build:
+        desc: "최종 설계를 바탕으로 워크플로우 YAML과 에이전트 템플릿 파일을 생성한다"
+        details:
+          - workflow-template-guide.md
+          - agent-template-guide.md
+        input:
+          - reconcile
+          - design-review
+        agent: workflow-design-builder
+    - build-review:
+        desc: "생성된 파일의 문법, 참조 무결성, 빌드 가능성을 채점하고 개선 방향을 제시한다"
+        details:
+          - workflow-template-guide.md
+          - agent-template-guide.md
+        input:
+          - build
+        agent: workflow-design-evaluator
+
+flow:
+  - analyze
+  - retry:
+      condition: score < 80
+      max: 3
+      flow:
+        - parallel:
+          - flow:
+            - wf-plan
+            - wf-review
+            - wf-advise
+          - flow:
+            - ag-plan
+            - ag-review
+            - ag-advise
+        - reconcile
+        - design-review
+  - hitl
+  - retry:
+      condition: score < 80
+      max: 3
+      flow:
+        - build
+        - build-review
+  - hitl
