@@ -47,10 +47,10 @@ define:
         agent: test-analyst
 
     - coverage-plan-review:
-        desc: "커버리지 테스트 계획의 완전성과 정확성을 검증하고 점수를 매긴다"
+        desc: "커버리지 테스트 계획의 완전성과 정확성을 채점하고 개선 방향을 제시한다"
         input:
           - coverage-plan
-        agent: usecase-critic
+        agent: usecase-evaluator
 
     - coverage-test:
         desc: "컨디션 커버리지 테스트를 작성한다"
@@ -61,10 +61,10 @@ define:
         agent: test-implementor
 
     - coverage-review:
-        desc: "커버리지 달성 여부를 JaCoCo 기반으로 확인하고 점수를 매긴다"
+        desc: "커버리지 달성 여부를 JaCoCo 기반으로 채점하고 개선 방향을 제시한다"
         details:
           - condition-coverage-guide.md
-        agent: code-level-critic
+        agent: code-level-evaluator
 
 flow:
   - retry:

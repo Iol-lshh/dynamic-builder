@@ -65,7 +65,7 @@ define:
           - usecase-guide.md
     - spec-review:
         desc: "요구사항 문서의 유스케이스 완전성과 행위 흐름을 검증하고 점수를 매긴다"
-        agent: usecase-critic
+        agent: usecase-evaluator
         input:
           - spec-analyze-usecase
           - spec-analyze-domain

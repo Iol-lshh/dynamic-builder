@@ -43,18 +43,18 @@ define:
         agent: scope-reduction-reconciler
 
     - page-usecase-review:
-        desc: "화면 명세의 유스케이스 완전성과 사후조건을 검증하고 점수를 매긴다"
+        desc: "화면 명세의 유스케이스 완전성과 사후조건을 채점하고 개선 방향을 제시한다"
         input:
           - page-synthesis
-        agent: usecase-critic
+        agent: usecase-evaluator
     - page-uiux-review:
-        desc: "화면 명세의 UX 패턴과 인터랙션 완전성을 검증하고 점수를 매긴다"
+        desc: "화면 명세의 UX 패턴과 인터랙션 완전성을 채점하고 개선 방향을 제시한다"
         input:
           - page-synthesis
         details:
           - thymeleaf-guide-index.md
           - hybrids-guide-index.md
-        agent: uiux-critic
+        agent: uiux-evaluator
 
     - page-implements:
         desc: "화면 명세를 기반으로 Thymeleaf 템플릿과 JS 파일을 생성한다"
@@ -73,7 +73,7 @@ define:
         agent: uiux-implementor
 
     - page-review:
-        desc: "생성된 화면 코드의 패턴 준수, 데이터 바인딩 정확성, 누락 여부를 점검하고 점수를 매긴다"
+        desc: "생성된 화면 코드의 패턴 준수, 데이터 바인딩 정확성, 누락 여부를 채점하고 개선 방향을 제시한다"
         details:
           - thymeleaf-page-template.md
           - thymeleaf-ui-components.md
@@ -83,7 +83,7 @@ define:
           - hybrids-store-state.md
           - hybrids-ui-patterns.md
           - hybrids-page-entry.md
-        agent: uiux-critic
+        agent: uiux-evaluator
 
 flow:
   - retry:
@@ -91,12 +91,16 @@ flow:
       max: 3
       flow:
         - parallel:
-          - page-analyze-A
-          - page-analyze-B
-        - parallel:
-          - page-tradeoff-advise
-          - page-constraint-advise
-          - page-scope-reduction-advise
+          - flow:
+            - page-analyze-A
+            - page-tradeoff-advise
+            - page-constraint-advise
+            - page-scope-reduction-advise
+          - flow:
+            - page-analyze-B
+            - page-tradeoff-advise
+            - page-constraint-advise
+            - page-scope-reduction-advise
         - page-synthesis
         - page-usecase-review
         - if:

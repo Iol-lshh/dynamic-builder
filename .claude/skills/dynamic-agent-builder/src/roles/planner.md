@@ -13,7 +13,8 @@
 
 - 요구사항 분석, 현황 파악 (analyst의 역할)
 - 코드 구현, 테스트 작성 (implementor의 역할)
-- 산출물 품질 검증 (critic의 역할)
+- 산출물 규칙 검증 (validator의 역할)
+- 산출물 품질 채점 (evaluator의 역할)
 
 ## 도구 제약
 
