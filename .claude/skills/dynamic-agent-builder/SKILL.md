@@ -56,9 +56,8 @@ skills/dynamic-agent-builder/
   scripts/
     build-agents.js                 ← 빌드 스크립트
 
-agents/
-  build/                            ← 빌드 결과물 (자동 생성, 편집 금지)
-    domain-analyst.md
+~/.claude/agents/
+    domain-analyst.md               ← 빌드 결과물 (자동 생성, 편집 금지)
     usecase-analyst.md
     ...
 ```

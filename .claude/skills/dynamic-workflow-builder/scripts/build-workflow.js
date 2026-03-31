@@ -20,11 +20,12 @@
  */
 
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 
 // ── 경로 설정 ──────────────────────────────────────────────
 const SKILL_DIR = path.resolve(__dirname, "..");
-const CLAUDE_DIR = path.resolve(SKILL_DIR, "..", "..");
+const CLAUDE_DIR = path.join(os.homedir(), ".claude");
 const SRC_DIR = path.join(SKILL_DIR, "src");
 const TEMPLATE_DIR = path.join(SRC_DIR, "templates");
 const DETAILS_DIR = path.join(SRC_DIR, "details");
