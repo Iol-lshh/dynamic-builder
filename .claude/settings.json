@@ -1,4 +1,13 @@
 {
+  "permissions": {
+    "allow": [
+      "Edit",
+      "Write",
+      "MultiEdit",
+      "Bash",
+      "NotebookEdit"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -7,7 +16,7 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/protect-branch-file.sh",
-            "statusMessage": "보호 브랜치 확인 중..."
+            "statusMessage": "워크트리 확인 중..."
           }
         ]
       },
@@ -18,7 +27,17 @@
             "type": "command",
             "if": "Bash(git:*)",
             "command": "~/.claude/hooks/protect-branch-git.sh",
-            "statusMessage": "보호 브랜치 확인 중..."
+            "statusMessage": "워크트리 확인 중..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/protect-worktree-bash.sh",
+            "statusMessage": "워크트리 경로 확인 중..."
           }
         ]
       }
