@@ -42,7 +42,7 @@ node ~/.claude/skills/dynamic-agent-builder/scripts/build-agents.js --clean
 |---|---|---|
 | Perspective | `src/perspectives/` | agent가 바라보는 관점 (usecase, code-level, ...) |
 | Role | `src/roles/` | agent의 담당과 행동 방식 (analyst, critic, builder, ...) |
-| Principle | `src/principles/` | 모든 agent에 공통 적용되는 행동 원칙 |
+| Principle | `src/principles/` | agent에 추가적으로 적용시킬 행동 원칙 |
 | Template | `src/templates/` | perspective + role 조합 뼈대 |
 
 **현재 정의된 Perspective**
