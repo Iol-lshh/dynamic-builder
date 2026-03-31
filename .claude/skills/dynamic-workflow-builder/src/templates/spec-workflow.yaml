@@ -58,16 +58,11 @@ flow:
       max: 3
       flow:
         - parallel:
-          - flow:
-            - spec-analyze-A
-            - spec-tradeoff-advise
-            - spec-constraint-advise
-            - spec-scope-reduction-advise
-          - flow:
-            - spec-analyze-B
-            - spec-tradeoff-advise
-            - spec-constraint-advise
-            - spec-scope-reduction-advise
+          - spec-analyze-A
+          - spec-analyze-B
         - spec-synthesis
+        - spec-tradeoff-advise
+        - spec-constraint-advise
+        - spec-scope-reduction-advise
         - spec-review
   - hitl

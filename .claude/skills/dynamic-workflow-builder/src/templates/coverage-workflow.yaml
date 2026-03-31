@@ -89,17 +89,12 @@ flow:
       max: 3
       flow:
         - parallel:
-          - flow:
-            - coverage-analyze-A
-            - coverage-tradeoff-advise
-            - coverage-constraint-advise
-            - coverage-scope-reduction-advise
-          - flow:
-            - coverage-analyze-B
-            - coverage-tradeoff-advise
-            - coverage-constraint-advise
-            - coverage-scope-reduction-advise
+          - coverage-analyze-A
+          - coverage-analyze-B
         - coverage-synthesis
+        - coverage-tradeoff-advise
+        - coverage-constraint-advise
+        - coverage-scope-reduction-advise
         - coverage-plan
         - coverage-plan-validate
         - coverage-plan-review

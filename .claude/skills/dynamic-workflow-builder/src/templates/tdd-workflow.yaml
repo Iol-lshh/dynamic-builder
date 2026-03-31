@@ -112,17 +112,12 @@ flow:
       max: 3
       flow:
         - parallel:
-          - flow:
-            - tdd-analyze-A
-            - tdd-tradeoff-advise
-            - tdd-constraint-advise
-            - tdd-scope-reduction-advise
-          - flow:
-            - tdd-analyze-B
-            - tdd-tradeoff-advise
-            - tdd-constraint-advise
-            - tdd-scope-reduction-advise
+          - tdd-analyze-A
+          - tdd-analyze-B
         - tdd-synthesis
+        - tdd-tradeoff-advise
+        - tdd-constraint-advise
+        - tdd-scope-reduction-advise
         - tdd-analysis-review
   - hitl
   # Phase 2: 테스트 계획

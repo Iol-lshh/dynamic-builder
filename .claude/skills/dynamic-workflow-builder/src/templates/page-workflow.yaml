@@ -152,17 +152,12 @@ flow:
       max: 3
       flow:
         - parallel:
-          - flow:
-            - page-analyze-A
-            - page-tradeoff-advise
-            - page-constraint-advise
-            - page-scope-reduction-advise
-          - flow:
-            - page-analyze-B
-            - page-tradeoff-advise
-            - page-constraint-advise
-            - page-scope-reduction-advise
+          - page-analyze-A
+          - page-analyze-B
         - page-synthesis
+        - page-tradeoff-advise
+        - page-constraint-advise
+        - page-scope-reduction-advise
         - page-usecase-review
         - if:
             condition: score >= 80

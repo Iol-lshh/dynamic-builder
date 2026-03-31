@@ -57,17 +57,12 @@ flow:
       max: 3
       flow:
         - parallel:
-          - flow:
             - analyze-A
-            - advise-X
-            - advise-Y
-            - advise-Z
-          - flow:
             - analyze-B
-            - advise-X
-            - advise-Y
-            - advise-Z
         - synthesize
+        - advise-X
+        - advise-Y
+        - advise-Z
         - review
   - hitl
 ```
@@ -75,8 +70,8 @@ flow:
 **특징:**
 - 스텝 5~8개
 - 병렬 분석 2~3개
-- 조언 2~3개 (tradeoff / constraint-bypass / scope-reduction)
 - reconciler로 통합
+- 조언 2~3개 (tradeoff / constraint-bypass / scope-reduction)
 - evaluator로 품질 게이트
 - retry 1회 (분석 루프)
 - HITL 1개
@@ -107,17 +102,12 @@ flow:
       max: 3
       flow:
         - parallel:
-          - flow:
             - analyze-A
-            - advise-X
-            - advise-Y
-            - advise-Z
-          - flow:
             - analyze-B
-            - advise-X
-            - advise-Y
-            - advise-Z
         - synthesize
+        - advise-X
+        - advise-Y
+        - advise-Z
         - review
   - hitl
   # Phase 2: 계획
@@ -150,7 +140,7 @@ flow:
 - 3개 페이즈 (분석 → 설계 → 구현)
 - 각 페이즈에 retry + evaluator
 - HITL 2~3개 (페이즈 전환점마다)
-- 병렬 분석 + 병렬 조언
+- 병렬 분석 + 조언
 - planner + advisor로 설계 품질 확보
 - builder + validator + evaluator로 구현 품질 확보
 
@@ -178,17 +168,12 @@ Phase 3: builder → validator → evaluator → hitl
 flow:
   # Phase 1: 질문 도출
   - parallel:
-    - flow:
       - analyze-A
-      - advise-X
-      - advise-Y
-      - advise-Z
-    - flow:
       - analyze-B
-      - advise-X
-      - advise-Y
-      - advise-Z
   - synthesize
+  - advise-X
+  - advise-Y
+  - advise-Z
   - hitl
   # Phase 2: 답변 분석 → 산출물 생성
   - retry:
