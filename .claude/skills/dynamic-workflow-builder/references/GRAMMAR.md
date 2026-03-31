@@ -196,7 +196,7 @@ review 이후에 score(100점 만점) 표현식 확인을 거친다.
 skills/dynamic-workflow-builder/
   SKILL.md                        ← skill 정의 (스크립트 실행)
   references/
-    GRAMMER.md                     ← 이 파일 (워크플로우 정의 문법)
+    GRAMMAR.md                     ← 이 파일 (워크플로우 정의 문법)
   scripts/
     build-workflow.js               ← 워크플로우 실행 스크립트
   templates/
