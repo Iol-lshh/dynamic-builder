@@ -102,7 +102,7 @@ define:
           - nf-answer-analysis
         agent: nonfiction-writing-builder
 
-    # 2-3. 초안에 대한 3관점 조언
+    # 2-3. 3관점 순차 조언 (이전 조언을 누적하며 글을 쌓아감)
     - nf-draft-advise-emp:
         desc: "경험주의 관점에서 초안을 검토한다. 주장의 경험적 근거가 충분한지, 사례와 데이터가 구체적인지, 귀납 추론에 비약이 없는지 평가하고 개선 조언을 제시한다"
         input:
@@ -110,32 +110,43 @@ define:
           - nf-answer-analysis
         agent: empiricist-analyst
     - nf-draft-advise-apr:
-        desc: "선험주의 관점에서 초안을 검토한다. 논증의 전제가 명시적인지, 연역 구조가 타당한지, 범주적 일관성이 유지되는지 평가하고 개선 조언을 제시한다"
+        desc: "선험주의 관점에서 초안을 검토한다. 경험주의 조언을 참고하되, 논증의 전제가 명시적인지, 연역 구조가 타당한지, 범주적 일관성이 유지되는지 평가하고 개선 조언을 제시한다"
         input:
           - nf-draft
           - nf-answer-analysis
+          - nf-draft-advise-emp
         agent: apriorist-analyst
     - nf-draft-advise-dct:
-        desc: "해체주의 관점에서 초안를 검토한다. 숨겨진 편향, 이항 대립의 위계, 배제된 시각이 있는지 식별하고 개선 조언을 제시한다"
-        input:
-          - nf-draft
-          - nf-answer-analysis
-        agent: deconstructionist-analyst
-
-    # 2-4. 검증
-    - nf-validate:
-        desc: "논픽션 글 초안과 3관점 조언을 종합하여 구조 규칙 준수 여부를 검증한다. 논증 완전성, 독자 적합성, 형식 준수를 체크한다"
-        details:
-          - nf-validation-rules.md
+        desc: "해체주의 관점에서 초안을 검토한다. 경험주의·선험주의 조언을 참고하되, 숨겨진 편향, 이항 대립의 위계, 배제된 시각이 있는지 식별하고 개선 조언을 제시한다"
         input:
           - nf-draft
           - nf-answer-analysis
           - nf-draft-advise-emp
           - nf-draft-advise-apr
+        agent: deconstructionist-analyst
+
+    # 2-4. 스코프 축소 및 간결화
+    - nf-simplify:
+        desc: "3관점 조언을 종합하여 초안의 범위를 조정한다. 불필요한 확장을 제거하고, 핵심 논지에 집중하도록 간결화 방안을 제시한다. CUT(제거), MINIMUM(최소 유지), DEFER(후순위) 프레임으로 정리한다"
+        input:
+          - nf-draft
+          - nf-draft-advise-emp
+          - nf-draft-advise-apr
           - nf-draft-advise-dct
+        agent: scope-reduction-advisor
+
+    # 2-5. 검증
+    - nf-validate:
+        desc: "논픽션 글 초안과 3관점 조언, 간결화 방안을 종합하여 구조 규칙 준수 여부를 검증한다. 논증 완전성, 독자 적합성, 형식 준수를 체크한다"
+        details:
+          - nf-validation-rules.md
+        input:
+          - nf-draft
+          - nf-answer-analysis
+          - nf-simplify
         agent: nonfiction-writing-validator
 
-    # 2-5. 평가
+    # 2-6. 평가
     - nf-review:
         desc: "논픽션 글의 품질을 5개 항목으로 채점한다. 논증 타당성, 독자 적합성, 구조 완성도, 문체 일관성, 근거 활용도를 평가한다"
         details:
@@ -162,17 +173,17 @@ flow:
         - nf-advise-structure
   - nf-synthesize
   - hitl
-  # Phase 2: 산출물 생성 (분석 → 작성 → 3관점 조언 → 검증 → 평가)
+  # Phase 2: 산출물 생성 (분석 → 작성 → 순차 3관점 조언 → 간결화 → 검증 → 평가)
   - retry:
       condition: score < 80
       max: 3
       flow:
         - nf-answer-analysis
         - nf-draft
-        - parallel:
-          - nf-draft-advise-emp
-          - nf-draft-advise-apr
-          - nf-draft-advise-dct
+        - nf-draft-advise-emp
+        - nf-draft-advise-apr
+        - nf-draft-advise-dct
+        - nf-simplify
         - nf-validate
         - nf-review
   - hitl
