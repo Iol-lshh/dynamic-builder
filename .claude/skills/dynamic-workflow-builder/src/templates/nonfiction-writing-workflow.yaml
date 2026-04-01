@@ -1,0 +1,189 @@
+define:
+  steps:
+    # ── Phase 1: 질문 도출 ──
+
+    # 축 A: 내용/논증 분석
+    - nf-content-analyze:
+        desc: "입력 텍스트의 내용/논증 구조를 분석하여, 근거 타당성·논리 구조·편향에 대해 확인해야 할 질문을 도출한다"
+        details:
+          - question-generation-guide.md
+        agent: nonfiction-writing-analyst
+
+    - nf-advise-evidence:
+        desc: "경험주의 관점에서 텍스트의 근거 타당성을 분석한다. 관찰 가능한 사실과 귀납적 근거의 충분성을 평가하고 질문을 도출한다"
+        details:
+          - question-generation-guide.md
+        input:
+          - nf-content-analyze
+        agent: empiricist-analyst
+
+    - nf-advise-logic:
+        desc: "선험주의 관점에서 텍스트의 논리 구조를 분석한다. 전제-결론의 연역적 타당성과 범주적 일관성을 평가하고 질문을 도출한다"
+        details:
+          - question-generation-guide.md
+        input:
+          - nf-content-analyze
+        agent: apriorist-analyst
+
+    - nf-advise-bias:
+        desc: "해체주의 관점에서 텍스트의 편향을 분석한다. 이항 대립 구조, 숨겨진 위계, 배제된 시각을 식별하고 질문을 도출한다"
+        details:
+          - question-generation-guide.md
+        input:
+          - nf-content-analyze
+        agent: deconstructionist-analyst
+
+    # 축 B: 형식/독자 분석
+    - nf-form-analyze:
+        desc: "입력 텍스트의 형식/독자/매체 측면을 분석하여, 독자 적합성·톤·구조에 대해 확인해야 할 질문을 도출한다"
+        details:
+          - question-generation-guide.md
+        agent: nonfiction-writing-analyst
+
+    - nf-advise-audience:
+        desc: "독자 관점에서 텍스트를 분석한다. 대상 독자의 전제 지식·기대·관심사와 텍스트의 정합성을 평가하고 질문을 도출한다"
+        details:
+          - question-generation-guide.md
+        input:
+          - nf-form-analyze
+        agent: nonfiction-writing-advisor
+
+    - nf-advise-tone:
+        desc: "톤/문체 관점에서 텍스트를 분석한다. 어조·문체·어휘 수준이 매체와 목적에 부합하는지 평가하고 질문을 도출한다"
+        details:
+          - question-generation-guide.md
+        input:
+          - nf-form-analyze
+        agent: nonfiction-writing-advisor
+
+    - nf-advise-structure:
+        desc: "구조 관점에서 텍스트를 분석한다. 서사/논증/해설 구조의 적합성, 분량 배분, 전개 흐름을 평가하고 질문을 도출한다"
+        details:
+          - question-generation-guide.md
+        input:
+          - nf-form-analyze
+        agent: nonfiction-writing-advisor
+
+    # 통합
+    - nf-synthesize:
+        desc: "축 A(내용/논증)와 축 B(형식/독자)의 분석 결과를 통합하고, 중복 제거, 우선순위 부여하여 사용자에게 제시할 질문 목록을 작성한다"
+        input:
+          - nf-advise-evidence
+          - nf-advise-logic
+          - nf-advise-bias
+          - nf-advise-audience
+          - nf-advise-tone
+          - nf-advise-structure
+        agent: nonfiction-writing-reconciler
+
+    # ── Phase 2: 산출물 생성 ──
+
+    # 2-1. 답변 분석
+    - nf-answer-analysis:
+        desc: "사용자 답변을 Phase 1 분석 결과와 교차 분석하여, 논픽션 글 작성에 필요한 요소를 추출한다. 주제·논지·근거·독자·톤·구조·매체 요소를 정리한다"
+        details:
+          - answer-analysis-guide.md
+        input:
+          - nf-advise-evidence
+          - nf-advise-logic
+          - nf-advise-bias
+          - nf-advise-audience
+          - nf-advise-tone
+          - nf-advise-structure
+          - nf-synthesize
+        agent: nonfiction-writing-reconciler
+
+    # 2-2. 초안 작성
+    - nf-draft:
+        desc: "답변 분석 결과를 바탕으로 논픽션 글 초안을 작성한다. 독자·톤·구조·논증 요소를 모두 반영한다"
+        details:
+          - nf-output-format.md
+        input:
+          - nf-answer-analysis
+        agent: nonfiction-writing-builder
+
+    # 2-3. 3관점 순차 조언 (이전 조언을 누적하며 글을 쌓아감)
+    - nf-draft-advise-emp:
+        desc: "경험주의 관점에서 초안을 검토한다. 주장의 경험적 근거가 충분한지, 사례와 데이터가 구체적인지, 귀납 추론에 비약이 없는지 평가하고 개선 조언을 제시한다"
+        input:
+          - nf-draft
+          - nf-answer-analysis
+        agent: empiricist-analyst
+    - nf-draft-advise-apr:
+        desc: "선험주의 관점에서 초안을 검토한다. 경험주의 조언을 참고하되, 논증의 전제가 명시적인지, 연역 구조가 타당한지, 범주적 일관성이 유지되는지 평가하고 개선 조언을 제시한다"
+        input:
+          - nf-draft
+          - nf-answer-analysis
+          - nf-draft-advise-emp
+        agent: apriorist-analyst
+    - nf-draft-advise-dct:
+        desc: "해체주의 관점에서 초안을 검토한다. 경험주의·선험주의 조언을 참고하되, 숨겨진 편향, 이항 대립의 위계, 배제된 시각이 있는지 식별하고 개선 조언을 제시한다"
+        input:
+          - nf-draft
+          - nf-answer-analysis
+          - nf-draft-advise-emp
+          - nf-draft-advise-apr
+        agent: deconstructionist-analyst
+
+    # 2-4. 스코프 축소 및 간결화
+    - nf-simplify:
+        desc: "3관점 조언을 종합하여 초안의 범위를 조정한다. 불필요한 확장을 제거하고, 핵심 논지에 집중하도록 간결화 방안을 제시한다. CUT(제거), MINIMUM(최소 유지), DEFER(후순위) 프레임으로 정리한다"
+        input:
+          - nf-draft
+          - nf-draft-advise-emp
+          - nf-draft-advise-apr
+          - nf-draft-advise-dct
+        agent: scope-reduction-advisor
+
+    # 2-5. 검증
+    - nf-validate:
+        desc: "논픽션 글 초안과 3관점 조언, 간결화 방안을 종합하여 구조 규칙 준수 여부를 검증한다. 논증 완전성, 독자 적합성, 형식 준수를 체크한다"
+        details:
+          - nf-validation-rules.md
+        input:
+          - nf-draft
+          - nf-answer-analysis
+          - nf-simplify
+        agent: nonfiction-writing-validator
+
+    # 2-6. 평가
+    - nf-review:
+        desc: "논픽션 글의 품질을 5개 항목으로 채점한다. 논증 타당성, 독자 적합성, 구조 완성도, 문체 일관성, 근거 활용도를 평가한다"
+        details:
+          - nf-scoring-criteria.md
+        input:
+          - nf-draft
+          - nf-validate
+        agent: nonfiction-writing-evaluator
+
+flow:
+  # Phase 1: 질문 도출
+  - parallel:
+    - flow:
+      - nf-content-analyze
+      - parallel:
+        - nf-advise-evidence
+        - nf-advise-logic
+        - nf-advise-bias
+    - flow:
+      - nf-form-analyze
+      - parallel:
+        - nf-advise-audience
+        - nf-advise-tone
+        - nf-advise-structure
+  - nf-synthesize
+  - hitl
+  # Phase 2: 산출물 생성 (분석 → 작성 → 순차 3관점 조언 → 간결화 → 검증 → 평가)
+  - retry:
+      condition: score < 80
+      max: 3
+      flow:
+        - nf-answer-analysis
+        - nf-draft
+        - nf-draft-advise-emp
+        - nf-draft-advise-apr
+        - nf-draft-advise-dct
+        - nf-simplify
+        - nf-validate
+        - nf-review
+  - hitl
