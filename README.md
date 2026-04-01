@@ -177,6 +177,26 @@ flow:
 
 ---
 
+## Scripts
+
+`~/.claude/scripts/` 에 위치한 유틸리티 스크립트.
+
+| Script | 설명 | 주요 옵션 |
+|---|---|---|
+| `build-dynamic.sh` | agent + workflow 통합 빌드 | `--agent`, `--workflow` |
+| `clean-dynamic.sh` | 빌드 산출물 삭제 | `--agent`, `--workflow` |
+| `clean-worktree.sh` | 완료된 worktree 및 연결 브랜치 삭제 | `--all`, `--prunable`, `--dry-run`, `<name>` |
+
+```bash
+~/.claude/scripts/build-dynamic.sh            # 전체 빌드
+~/.claude/scripts/clean-dynamic.sh            # 전체 정리
+~/.claude/scripts/clean-worktree.sh           # 대화형 worktree 삭제
+~/.claude/scripts/clean-worktree.sh --all     # 전체 worktree 삭제
+~/.claude/scripts/clean-worktree.sh --prunable # prunable 상태만 정리
+```
+
+---
+
 ## 설치
 
 ```bash
