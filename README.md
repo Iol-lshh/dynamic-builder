@@ -201,16 +201,27 @@ flow:
 
 ```bash
 git clone https://github.com/Iol-lshh/dynamic-builder.git
-cp -r dynamic-builder/.claude/* ~/.claude/
+cd dynamic-builder
 ```
 
-빌드:
+| Script | 설명 | 명령어 |
+|---|---|---|
+| `install-skills.sh` | skills, scripts, references, CLAUDE.md를 `~/.claude/`에 복사 | `bash scripts/install-skills.sh` |
+| `install-and-build.sh` | 위 설치 + agent/workflow 빌드까지 실행 | `bash scripts/install-and-build.sh` |
+| `install-hooks.sh` | hooks 복사 + settings.json 비교 머지 | `bash scripts/install-hooks.sh` |
+| `uninstall.sh` | 빌드 산출물 정리 + 설치한 파일 역순 제거 | `bash scripts/uninstall.sh` |
+
+**빠른 설치 (전체):**
 
 ```bash
-# 통합 빌드
-~/.claude/scripts/build-dynamic.sh
+bash scripts/install-and-build.sh   # skills + 빌드
+bash scripts/install-hooks.sh       # hooks + settings
+```
 
-# 개별 빌드
-node ~/.claude/skills/dynamic-agent-builder/scripts/build-agents.js
-node ~/.claude/skills/dynamic-workflow-builder/scripts/build-workflow.js
+**개별 빌드:**
+
+```bash
+~/.claude/scripts/build-dynamic.sh            # 전체 빌드
+~/.claude/scripts/build-dynamic.sh --agent    # agent만
+~/.claude/scripts/build-dynamic.sh --workflow # workflow만
 ```

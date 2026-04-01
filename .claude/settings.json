@@ -5,7 +5,10 @@
       "Write",
       "MultiEdit",
       "Bash",
-      "NotebookEdit"
+      "NotebookEdit",
+      "Bash(bash .claude/scripts/build-dynamic.sh*)",
+      "Bash(bash .claude/scripts/clean-dynamic.sh*)",
+      "Bash(bash .claude/scripts/clean-worktree.sh*)"
     ]
   },
   "hooks": {
