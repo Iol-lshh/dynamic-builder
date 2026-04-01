@@ -1,0 +1,62 @@
+define:
+  steps:
+    - extract-scores:
+        desc: "복수 essay-synthesis.md 파일에서 6차원 스코어 벡터(낙관도, 해체도, 문제인식, 대안해상도, 내용응집도, 관점차별도)와 총점을 추출하여 구조화된 스코어 매트릭스로 변환한다"
+        agent: data-driven-analyst
+        details:
+          - scoring-scales.md
+          - grouping-extract-guide.md
+        output: extract-scores.md
+
+    - compute-team-scores:
+        desc: "스코어 매트릭스를 기반으로 가능한 그룹 조합별 팀 점수를 계산한다. 낙관도·해체도는 팀 평균의 중간값(50) 근접도로, 문제인식·대안해상도·내용응집도·관점차별도는 팀 평균의 합산으로 점수화한다. 에세이 수가 많으면 전수 탐색 대신 휴리스틱/근사 전략을 적용한다"
+        agent: data-driven-analyst
+        details:
+          - scoring-optimization-guide.md
+          - team-scoring-formula.md
+        input:
+          - extract-scores
+        output: compute-team-scores.md
+
+    - analyze-complementarity:
+        desc: "에세이 간 관점·논조·강점·약점이 서로 보완하는지 질적으로 평가한다. 스코어가 유사해도 관점이 다른 경우, 스코어가 달라도 논조가 겹치는 경우를 식별하여 보완성 매트릭스를 산출한다"
+        agent: essay-synthesis-analyst
+        details:
+          - complementarity-analysis-guide.md
+        input:
+          - extract-scores
+        output: analyze-complementarity.md
+
+    - optimize-grouping:
+        desc: "정량 팀 점수와 정성 보완성을 종합하여, 부분 최적화(한 팀 최고 보완 조합)와 전체 최적화(모든 팀 고르게 높은 보완 점수) 두 가지 배정안을 도출한다"
+        agent: essay-synthesis-reconciler
+        details:
+          - scoring-optimization-guide.md
+          - grouping-output-format.md
+        input:
+          - compute-team-scores
+          - analyze-complementarity
+        output: optimize-grouping.md
+
+    - grouping-review:
+        desc: "두 배정안(부분 최적화, 전체 최적화)의 품질을 채점한다. 팀 내 보완성, 팀 간 균형, 경계 사례 처리의 합리성, 배정 근거의 추적 가능성을 평가한다. score는 두 배정안 점수 중 낮은 값(min)을 사용한다"
+        agent: essay-synthesis-evaluator
+        details:
+          - grouping-review-guide.md
+        input:
+          - optimize-grouping
+          - compute-team-scores
+          - analyze-complementarity
+        output: grouping-review.md
+
+flow:
+  - extract-scores
+  - compute-team-scores
+  - retry:
+      condition: score < 80
+      max: 3
+      flow:
+        - analyze-complementarity
+        - optimize-grouping
+        - grouping-review
+  - hitl
