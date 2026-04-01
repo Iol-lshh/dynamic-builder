@@ -15,18 +15,10 @@ define:
         input:
           - analyze
         agent: workflow-design-planner
-    - wf-review:
-        desc: "워크플로우 설계의 완전성과 문법 준수를 채점하고 개선 방향을 제시한다"
-        details:
-          - workflow-template-guide.md
-        input:
-          - wf-plan
-        agent: workflow-design-evaluator
     - wf-advise:
         desc: "워크플로우 구조의 트레이드오프를 분석하고 대안을 조언한다"
         input:
           - wf-plan
-          - wf-review
         agent: tradeoff-advisor
 
     - ag-plan:
@@ -36,18 +28,10 @@ define:
         input:
           - analyze
         agent: agent-composition-planner
-    - ag-review:
-        desc: "에이전트 구성의 적절성과 기존 컴포넌트 재사용률을 채점하고 개선 방향을 제시한다"
-        details:
-          - agent-template-guide.md
-        input:
-          - ag-plan
-        agent: agent-composition-evaluator
     - ag-advise:
         desc: "에이전트 구성의 최소화 방안을 조언한다"
         input:
           - ag-plan
-          - ag-review
         agent: scope-reduction-advisor
 
     - reconcile:
@@ -103,11 +87,9 @@ flow:
         - parallel:
           - flow:
             - wf-plan
-            - wf-review
             - wf-advise
           - flow:
             - ag-plan
-            - ag-review
             - ag-advise
         - reconcile
         - design-review

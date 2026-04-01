@@ -35,7 +35,7 @@ define:
         agent: scope-reduction-advisor
 
     - coverage-retrospect:
-        desc: "분석 및 조언 결과를 통합하여 분석 내용 회고를 작성한다"
+        desc: "분석 및 조언 결과를 통합하여 분석 내용 회고를 작성한다."
         input:
           - coverage-synthesis
           - coverage-tradeoff-advise
@@ -46,7 +46,7 @@ define:
     - coverage-plan:
         desc: "커버리지 테스트 작성 계획을 수립한다"
         input:
-          - coverage-synthesis
+          - coverage-retrospect
         agent: test-analyst
 
     - coverage-plan-validate:
@@ -54,6 +54,7 @@ define:
         input:
           - coverage-plan
         agent: usecase-validator
+
     - coverage-plan-review:
         desc: "검증 통과된 테스트 계획의 품질을 채점하고 개선 방향을 제시한다"
         input:

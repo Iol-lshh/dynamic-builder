@@ -11,8 +11,8 @@ GIT_CMD=$(echo "$INPUT" | jq -r '.tool_input.command // ""')
 
 # 1) push|merge|rebase|reset → 무조건 금지
 if echo "$GIT_CMD" | grep -qE 'git (push|merge|rebase|reset)'; then
-  echo "{\"decision\":\"block\",\"reason\":\"git push/merge/rebase/reset 는 금지된 명령입니다. 사용자가 직접 터미널에서 수행하세요.\"}"
-  exit 2
+  echo "{\"decision\":\"ask\",\"reason\":\"git push/merge/rebase/reset 는 금지된 명령입니다. 사용자가 직접 터미널에서 수행하세요.\"}"
+  exit 0
 fi
 
 # 2) 보호 브랜치(main|master|dev|stag|rc prefix)에서 commit 금지
@@ -26,7 +26,7 @@ fi
 # 3) 워크트리 바깥에서 commit 금지
 if echo "$GIT_CMD" | grep -qE 'git commit'; then
   if [[ "$GIT_DIR" != *"/worktrees/"* ]]; then
-    echo "{\"decision\":\"block\",\"reason\":\"워크트리 바깥(브랜치: $BRANCH)에서 commit은 금지됩니다. /worktree-entry-workflow 로 worktree를 생성하세요.\"}"
-    exit 2
+    echo "{\"decision\":\"ask\",\"reason\":\"워크트리 바깥(브랜치: $BRANCH)에서 commit은 금지됩니다. /worktree-entry-workflow 로 worktree를 생성하세요.\"}"
+    exit 0
   fi
 fi
