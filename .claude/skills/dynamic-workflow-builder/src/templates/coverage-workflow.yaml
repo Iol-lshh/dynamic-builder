@@ -11,33 +11,33 @@ define:
           - condition-coverage-guide.md
         agent: code-level-analyst
 
-    - coverage-tradeoff-advise:
-        desc: "커버리지 분석 결과를 바탕으로 테스트 전략의 트레이드오프를 조언한다"
+    - coverage-synthesis:
+        desc: "분석 결과를 통합하여 분석 내용 초고를 작성한다"
         input:
           - coverage-analyze-A
           - coverage-analyze-B
+        agent: scope-reduction-reconciler
+
+    - coverage-tradeoff-advise:
+        desc: "커버리지 분석 결과를 바탕으로 테스트 전략의 트레이드오프를 조언한다"
+        input:
+          - coverage-synthesis
         agent: tradeoff-advisor
     - coverage-constraint-advise:
         desc: "커버리지 달성의 제약 요인과 우회 방안을 조언한다 (tradeoff 조언과 중복 방지)"
         input:
-          - coverage-analyze-A
-          - coverage-analyze-B
-          - coverage-tradeoff-advise
+          - coverage-synthesis
         agent: constraint-bypass-advisor
     - coverage-scope-reduction-advise:
         desc: "최소 범위로 커버리지 목표를 달성하는 방안을 조언한다 (기존 조언과 중복 방지)"
         input:
-          - coverage-analyze-A
-          - coverage-analyze-B
-          - coverage-tradeoff-advise
-          - coverage-constraint-advise
+          - coverage-synthesis
         agent: scope-reduction-advisor
 
-    - coverage-synthesis:
-        desc: "분석 및 조언 결과를 통합하여 커버리지 테스트 계획 방향을 결정한다"
+    - coverage-retrospect:
+        desc: "분석 및 조언 결과를 통합하여 분석 내용 회고를 작성한다"
         input:
-          - coverage-analyze-A
-          - coverage-analyze-B
+          - coverage-synthesis
           - coverage-tradeoff-advise
           - coverage-constraint-advise
           - coverage-scope-reduction-advise
@@ -92,9 +92,11 @@ flow:
           - coverage-analyze-A
           - coverage-analyze-B
         - coverage-synthesis
-        - coverage-tradeoff-advise
-        - coverage-constraint-advise
-        - coverage-scope-reduction-advise
+        - parallel:
+          - coverage-tradeoff-advise
+          - coverage-constraint-advise
+          - coverage-scope-reduction-advise
+        - coverage-retrospect
         - coverage-plan
         - coverage-plan-validate
         - coverage-plan-review

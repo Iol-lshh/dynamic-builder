@@ -12,33 +12,33 @@ define:
           - usecase-guide.md
         agent: domain-analyst
 
-    - spec-tradeoff-advise:
-        desc: "요구사항 분석 결과를 바탕으로 구현 방식의 트레이드오프를 조언한다"
+    - spec-synthesis:
+        desc: "분석 결과를 통합하여 분석 내용 초고를 작성한다"
         input:
           - spec-analyze-A
           - spec-analyze-B
+        agent: scope-reduction-reconciler
+
+    - spec-tradeoff-advise:
+        desc: "요구사항 분석 결과를 바탕으로 구현 방식의 트레이드오프를 조언한다"
+        input:
+          - spec-synthesis
         agent: tradeoff-advisor
     - spec-constraint-advise:
         desc: "요구사항 달성의 제약 요인과 우회 방안을 조언한다 (tradeoff 조언과 중복 방지)"
         input:
-          - spec-analyze-A
-          - spec-analyze-B
-          - spec-tradeoff-advise
+          - spec-synthesis
         agent: constraint-bypass-advisor
     - spec-scope-reduction-advise:
         desc: "최소 범위로 요구사항을 충족하는 방안을 조언한다 (기존 조언과 중복 방지)"
         input:
-          - spec-analyze-A
-          - spec-analyze-B
-          - spec-tradeoff-advise
-          - spec-constraint-advise
+          - spec-synthesis
         agent: scope-reduction-advisor
 
-    - spec-synthesis:
-        desc: "분석 및 조언 결과를 통합하여 최종 요구사항 문서를 결정한다"
+    - spec-retrospect:
+        desc: "분석 및 조언 결과를 통합하여 분석 내용 회고를 작성한다"
         input:
-          - spec-analyze-A
-          - spec-analyze-B
+          - spec-synthesis
           - spec-tradeoff-advise
           - spec-constraint-advise
           - spec-scope-reduction-advise
@@ -49,7 +49,7 @@ define:
         details:
           - usecase-guide.md
         input:
-          - spec-synthesis
+          - spec-retrospect
         agent: usecase-evaluator
 
 flow:
@@ -61,8 +61,10 @@ flow:
           - spec-analyze-A
           - spec-analyze-B
         - spec-synthesis
-        - spec-tradeoff-advise
-        - spec-constraint-advise
-        - spec-scope-reduction-advise
+        - parallel:
+          - spec-tradeoff-advise
+          - spec-constraint-advise
+          - spec-scope-reduction-advise
+        - spec-retrospect
         - spec-review
   - hitl
