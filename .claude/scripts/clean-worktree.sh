@@ -9,8 +9,10 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+  echo "Error: git 리포지토리 안에서 실행해주세요."
+  exit 1
+}
 WORKTREE_DIR="$REPO_ROOT/.claude/worktrees"
 
 dry_run=false
