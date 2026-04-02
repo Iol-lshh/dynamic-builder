@@ -1,32 +1,20 @@
 #!/usr/bin/env bash
-# install-skills — dynamic-agent-builder, dynamic-workflow-builder, references, CLAUDE.md를 ~/.claude에 설치한다
+# install-plugin — dynamic-builder 플러그인의 런타임 의존성을 ~/.claude에 설치한다
+# skills는 플러그인이 직접 로드하므로 복사하지 않는다.
 # 사용법:
-#   bash scripts/install-skills.sh
+#   bash .setup/scripts/install-plugin.sh
 
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 CLAUDE_DIR="${HOME}/.claude"
 
-echo "=== Install Skills ==="
+echo "=== Install Plugin Dependencies ==="
 echo "Source: $REPO_DIR"
 echo "Target: $CLAUDE_DIR"
 echo ""
 
-# ── skills ──────────────────────────────────────────────
-for skill in dynamic-agent-builder dynamic-workflow-builder; do
-  src="$REPO_DIR/skills/$skill"
-  dst="$CLAUDE_DIR/skills/$skill"
-  if [[ ! -d "$src" ]]; then
-    echo "[SKIP] $skill — 소스 없음"
-    continue
-  fi
-  mkdir -p "$dst"
-  cp -r "$src"/* "$dst"/
-  echo "[OK]   skills/$skill"
-done
-
-# ── scripts ─────────────────────────────────────────────
+# ── scripts (빌드 산출물이 ~/.claude/에 생성되므로 필요) ──
 for s in build-dynamic.sh clean-dynamic.sh clean-worktree.sh; do
   src="$REPO_DIR/scripts/$s"
   if [[ -f "$src" ]]; then
@@ -36,7 +24,7 @@ for s in build-dynamic.sh clean-dynamic.sh clean-worktree.sh; do
   fi
 done
 
-# ── references ──────────────────────────────────────────
+# ── references (agents가 런타임에 참조) ───────────────────
 src_refs="$REPO_DIR/references"
 dst_refs="$CLAUDE_DIR/references"
 if [[ -d "$src_refs" ]]; then
@@ -49,11 +37,9 @@ fi
 src_claude_md="$REPO_DIR/CLAUDE.md"
 dst_claude_md="$CLAUDE_DIR/CLAUDE.md"
 if [[ ! -f "$dst_claude_md" ]]; then
-  # 없으면 그대로 복사
   cp "$src_claude_md" "$dst_claude_md"
   echo "[OK]   CLAUDE.md (새로 생성)"
 elif ! grep -qF '## Worktree 정책' "$dst_claude_md"; then
-  # 기존 파일에 Worktree 정책이 없으면 append
   echo "" >> "$dst_claude_md"
   cat "$src_claude_md" >> "$dst_claude_md"
   echo "[OK]   CLAUDE.md (기존 파일에 추가)"
@@ -62,4 +48,7 @@ else
 fi
 
 echo ""
-echo "Done. 빌드까지 하려면: bash scripts/install-and-build.sh"
+echo "Done."
+echo ""
+echo "플러그인 사용법:"
+echo "  claude --plugin-dir $REPO_DIR"

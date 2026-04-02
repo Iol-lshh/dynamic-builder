@@ -241,15 +241,15 @@ cd dynamic-builder
 
 | Script | 설명 | 명령어 |
 |---|---|---|
-| `install-skills.sh` | skills, scripts, references, CLAUDE.md를 `~/.claude/`에 복사 | `bash .setup/scripts/install-skills.sh` |
+| `install-plugin.sh` | 플러그인 런타임 의존성 설치 (scripts, references, CLAUDE.md) | `bash .setup/scripts/install-plugin.sh` |
 | `install-and-build.sh` | 위 설치 + agent/workflow 빌드까지 실행 | `bash .setup/scripts/install-and-build.sh` |
 | `install-settings.sh` | hooks 복사 + settings.json 비교 머지 | `bash .setup/scripts/install-settings.sh` |
-| `uninstall.sh` | 빌드 산출물 정리 + 설치한 파일 역순 제거 | `bash .setup/scripts/uninstall.sh` |
+| `uninstall.sh` | 빌드 산출물 + 설정 + 의존성 역순 제거 | `bash .setup/scripts/uninstall.sh` |
 
 **빠른 설치 (전체):**
 
 ```bash
-bash .setup/scripts/install-and-build.sh   # skills + 빌드
+bash .setup/scripts/install-and-build.sh   # 의존성 + 빌드
 bash .setup/scripts/install-settings.sh    # hooks + settings
 ```
 
