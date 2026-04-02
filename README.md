@@ -28,23 +28,14 @@ dynamic-builder/
       references/
 ```
 
-### 기존 설치 구조 (.claude/)
+### Hooks/Settings (.setup/)
 
 ```
-.claude/
-  skills/
-    dynamic-agent-builder/    ← agent 빌드 시스템
-    dynamic-workflow-builder/ ← workflow 빌드 시스템
+.setup/
   hooks/
     protect-branch-file.sh    ← 보호 브랜치 파일 수정 차단
     protect-branch-git.sh     ← 보호 브랜치 git 작업 차단
     protect-worktree-bash.sh  ← worktree 경계 밖 Bash 작업 차단
-  scripts/
-    build-dynamic.sh          ← agent + workflow 통합 빌드
-    clean-dynamic.sh          ← 빌드 산출물 정리
-    clean-worktree.sh         ← worktree 정리
-  agents/                     ← 빌드된 agent (자동 생성)
-  references/                 ← agent가 참조하는 공통 문서
   settings.json               ← hooks 설정
 ```
 

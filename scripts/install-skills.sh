@@ -9,13 +9,13 @@ REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 CLAUDE_DIR="${HOME}/.claude"
 
 echo "=== Install Skills ==="
-echo "Source: $REPO_DIR/.claude"
+echo "Source: $REPO_DIR"
 echo "Target: $CLAUDE_DIR"
 echo ""
 
 # ── skills ──────────────────────────────────────────────
 for skill in dynamic-agent-builder dynamic-workflow-builder; do
-  src="$REPO_DIR/.claude/skills/$skill"
+  src="$REPO_DIR/skills/$skill"
   dst="$CLAUDE_DIR/skills/$skill"
   if [[ ! -d "$src" ]]; then
     echo "[SKIP] $skill — 소스 없음"
@@ -27,16 +27,17 @@ for skill in dynamic-agent-builder dynamic-workflow-builder; do
 done
 
 # ── scripts ─────────────────────────────────────────────
-src_scripts="$REPO_DIR/.claude/scripts"
-dst_scripts="$CLAUDE_DIR/scripts"
-if [[ -d "$src_scripts" ]]; then
-  mkdir -p "$dst_scripts"
-  cp -r "$src_scripts"/* "$dst_scripts"/
-  echo "[OK]   scripts/"
-fi
+for s in build-dynamic.sh clean-dynamic.sh clean-worktree.sh; do
+  src="$REPO_DIR/scripts/$s"
+  if [[ -f "$src" ]]; then
+    mkdir -p "$CLAUDE_DIR/scripts"
+    cp "$src" "$CLAUDE_DIR/scripts/"
+    echo "[OK]   scripts/$s"
+  fi
+done
 
 # ── references ──────────────────────────────────────────
-src_refs="$REPO_DIR/.claude/references"
+src_refs="$REPO_DIR/references"
 dst_refs="$CLAUDE_DIR/references"
 if [[ -d "$src_refs" ]]; then
   mkdir -p "$dst_refs"

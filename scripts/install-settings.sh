@@ -11,7 +11,7 @@ CLAUDE_DIR="${HOME}/.claude"
 echo "=== Install Settings ==="
 
 # ── hooks 복사 ──────────────────────────────────────────
-src_hooks="$REPO_DIR/.claude/hooks"
+src_hooks="$REPO_DIR/.setup/hooks"
 dst_hooks="$CLAUDE_DIR/hooks"
 if [[ -d "$src_hooks" ]]; then
   mkdir -p "$dst_hooks"
@@ -20,7 +20,7 @@ if [[ -d "$src_hooks" ]]; then
 fi
 
 # ── settings.json 머지 ──────────────────────────────────
-src_settings="$REPO_DIR/.claude/settings.json"
+src_settings="$REPO_DIR/.setup/settings.json"
 dst_settings="$CLAUDE_DIR/settings.json"
 
 if [[ ! -f "$src_settings" ]]; then
