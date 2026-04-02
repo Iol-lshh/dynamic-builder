@@ -1,17 +1,40 @@
 # dynamic-builder
 
-Claude Code 개인 설정 저장소. `~/.claude/`에 복사하여 사용한다.
+Claude Code 빌드 시스템 플러그인. `perspective + role` 조합으로 agent를 빌드하고, YAML 워크플로우를 skill로 변환한다.
 
 ## 구조
+
+### 플러그인 구조
+
+```
+dynamic-builder/
+├── .claude-plugin/
+│   └── plugin.json             ← 플러그인 매니페스트
+├── skills/
+│   ├── dynamic-agent-builder/  ← agent 빌드 시스템
+│   └── dynamic-workflow-builder/ ← workflow 빌드 시스템
+├── scripts/                    ← 빌드/정리 스크립트
+└── references/                 ← agent가 참조하는 공통 문서
+```
+
+### ~/.claude/ 빌드 산출물 (자동 생성)
+
+```
+~/.claude/
+  agents/                       ← 빌드된 agent (자동 생성)
+  skills/
+    {workflow-name}/            ← 빌드된 workflow skill (자동 생성)
+      SKILL.md
+      references/
+```
+
+### 기존 설치 구조 (.claude/)
 
 ```
 .claude/
   skills/
     dynamic-agent-builder/    ← agent 빌드 시스템
     dynamic-workflow-builder/ ← workflow 빌드 시스템
-    {workflow-name}/          ← 빌드된 workflow skill (자동 생성)
-      SKILL.md
-      references/             ← details 파일 복사본 (자동 생성)
   hooks/
     protect-branch-file.sh    ← 보호 브랜치 파일 수정 차단
     protect-branch-git.sh     ← 보호 브랜치 git 작업 차단
@@ -198,6 +221,27 @@ flow:
 ---
 
 ## 설치
+
+### 플러그인으로 설치 (권장)
+
+```bash
+git clone https://github.com/Iol-lshh/dynamic-builder.git
+```
+
+Claude Code 실행 시 `--plugin-dir`로 로드:
+
+```bash
+claude --plugin-dir ./dynamic-builder
+```
+
+플러그인 설치 후 skill 사용:
+
+```
+/dynamic-builder:dynamic-agent-builder
+/dynamic-builder:dynamic-workflow-builder
+```
+
+### 기존 방식 (~/.claude/에 복사)
 
 ```bash
 git clone https://github.com/Iol-lshh/dynamic-builder.git

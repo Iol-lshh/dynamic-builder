@@ -1,0 +1,152 @@
+define:
+  steps:
+    # Phase 1: spec 분석
+    - tdd-analyze-A:
+        desc: "spec 명세를 유스케이스 관점에서 분석하여 테스트 대상과 시나리오를 도출한다"
+        agent: usecase-analyst
+    - tdd-analyze-B:
+        desc: "spec 명세를 코드 레벨 관점에서 분석하여 분기·경계값·예외 케이스를 도출한다"
+        agent: code-level-analyst
+
+    - tdd-synthesis:
+        desc: "분석 결과를 통합하여 분석 내용 초고를 작성한다"
+        input:
+          - tdd-analyze-A
+          - tdd-analyze-B
+        agent: scope-reduction-reconciler
+
+    - tdd-tradeoff-advise:
+        desc: "TDD 구현 방식의 트레이드오프를 조언한다"
+        input:
+          - tdd-synthesis
+        agent: tradeoff-advisor
+    - tdd-constraint-advise:
+        desc: "TDD 구현 제약 요인과 우회 방안을 조언한다 (tradeoff 조언과 중복 방지)"
+        input:
+          - tdd-synthesis
+        agent: constraint-bypass-advisor
+    - tdd-scope-reduction-advise:
+        desc: "최소 범위로 TDD 구현 목표를 달성하는 방안을 조언한다 (기존 조언과 중복 방지)"
+        input:
+          - tdd-synthesis
+        agent: scope-reduction-advisor
+
+    - tdd-retrospect:
+        desc: "분석 및 조언 결과를 통합하여 분석 내용 회고를 작성한다"
+        input:
+          - tdd-synthesis
+          - tdd-tradeoff-advise
+          - tdd-constraint-advise
+          - tdd-scope-reduction-advise
+        agent: scope-reduction-reconciler
+
+    - tdd-analysis-review:
+        desc: "통합된 분석의 완전성과 테스트 시나리오 커버리지를 채점하고 개선 방향을 제시한다"
+        input:
+          - tdd-retrospect
+        agent: usecase-evaluator
+
+    # Phase 2: 테스트 계획
+    - tdd-test-plan:
+        desc: "TDD 테스트 작성 계획을 수립한다 (테스트 순서, 픽스처, 경계값)"
+        input:
+          - tdd-retrospect
+          - tdd-analysis-review
+        agent: test-planner
+    - tdd-test-plan-advise:
+        desc: "테스트 계획의 최소 범위 접근을 조언한다"
+        input:
+          - tdd-test-plan
+        agent: scope-reduction-advisor
+    - tdd-test-plan-validate:
+        desc: "테스트 계획의 완전성과 규칙 준수를 검증한다 (합격/불합격)"
+        input:
+          - tdd-test-plan
+          - tdd-test-plan-advise
+        agent: code-level-validator
+    - tdd-test-plan-review:
+        desc: "검증 통과된 테스트 계획의 품질을 채점하고 개선 방향을 제시한다"
+        input:
+          - tdd-test-plan
+          - tdd-test-plan-validate
+        agent: code-level-evaluator
+
+    # Phase 3: 테스트 작성 (TDD Red)
+    - tdd-test:
+        desc: "테스트 계획을 기반으로 실패하는 테스트를 작성한다 (TDD Red)"
+        input:
+          - tdd-test-plan
+          - tdd-test-plan-review
+        agent: test-implementor
+    - tdd-test-validate:
+        desc: "작성된 테스트의 컴파일과 코딩 규칙 준수를 검증한다 (합격/불합격)"
+        agent: code-level-validator
+    - tdd-test-review:
+        desc: "검증 통과된 테스트의 품질을 채점하고 개선 방향을 제시한다"
+        input:
+          - tdd-test
+          - tdd-test-validate
+        agent: code-level-evaluator
+
+    # Phase 4: 코드 작성 (TDD Green)
+    - tdd-implement:
+        desc: "실패하는 테스트를 통과시키는 최소한의 구현을 작성한다 (TDD Green)"
+        input:
+          - tdd-test
+          - tdd-test-review
+        agent: code-level-implementor
+    - tdd-implement-validate:
+        desc: "구현된 코드의 컴파일, 테스트 통과, 코딩 규칙 준수를 검증한다 (합격/불합격)"
+        agent: code-level-validator
+    - tdd-implement-review:
+        desc: "검증 통과된 코드의 설계 품질을 채점하고 개선 방향을 제시한다"
+        input:
+          - tdd-implement
+          - tdd-implement-validate
+        agent: code-level-evaluator
+
+flow:
+  # Phase 1: spec 분석
+  - retry:
+      condition: score < 80
+      max: 3
+      flow:
+        - parallel:
+          - tdd-analyze-A
+          - tdd-analyze-B
+        - tdd-synthesis
+        - parallel:
+          - tdd-tradeoff-advise
+          - tdd-constraint-advise
+          - tdd-scope-reduction-advise
+        - tdd-retrospect
+        - tdd-analysis-review
+  - hitl
+  # Phase 2: 테스트 계획
+  - retry:
+      condition: score < 80
+      max: 3
+      flow:
+        - tdd-test-plan
+        - tdd-test-plan-advise
+        - tdd-test-plan-validate
+        - tdd-test-plan-review
+  - hitl
+  # Phase 3: 테스트 작성 (TDD Red)
+  - retry:
+      condition: score < 80
+      max: 3
+      flow:
+        - tdd-test
+        - tdd-test-validate
+        - tdd-test-review
+  - hitl
+  # Phase 4: 코드 작성 (TDD Green)
+  - retry:
+      condition: score < 80
+      max: 3
+      flow:
+        - tdd-implement
+        - tdd-implement-validate
+        - tdd-implement-review
+  - hitl

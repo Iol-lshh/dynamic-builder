@@ -1,0 +1,64 @@
+define:
+  steps:
+    # Phase 1: 병렬 분석 (5개 관점)
+    - review-business-logic:
+        desc: "변경된 코드를 도메인 모델 관점에서 검토한다. 비즈니스 규칙 위반, 도메인 불변조건 누락, 유비쿼터스 언어 불일치를 식별한다"
+        agent: domain-analyst
+    - review-bug:
+        desc: "변경된 코드에서 잠재적 버그를 식별한다. null 처리, 분기 조건 오류, 예외 처리, 상태 변이, 데이터 흐름, 외부 연동 문제를 중점 검토한다"
+        details:
+          - bug-review-checklist.md
+        agent: code-level-analyst
+    - review-performance:
+        desc: "변경된 코드에서 성능 저하 요인을 식별한다. 알고리즘 복잡도, N+1 쿼리, 메모리 사용, I/O 블로킹, 불필요한 변환을 중점 검토한다"
+        details:
+          - performance-review-checklist.md
+        agent: code-level-analyst
+    - review-dependency:
+        desc: "변경된 코드의 의존성과 복잡도를 검토한다. 레이어 경계 위반, 순환 참조, 모듈 결합도, 패키지 의존 방향을 식별한다"
+        agent: application-level-analyst
+    - review-antipattern:
+        desc: "변경된 코드에서 안티패턴을 식별한다. 설계/구현/제어흐름/레이어/테스트 안티패턴을 중점 검토한다"
+        details:
+          - antipattern-review-checklist.md
+        agent: code-level-analyst
+
+    # Phase 2: 통합
+    - reconcile:
+        desc: "5개 관점의 검토 결과를 통합한다. 중복 제거, 발견 항목 간 연관 관계 식별, 심각도 기준 우선순위 정렬을 수행한다"
+        input:
+          - review-business-logic
+          - review-bug
+          - review-performance
+          - review-dependency
+          - review-antipattern
+        agent: tradeoff-reconciler
+
+    # Phase 3: 검증 + 평가
+    - validate:
+        desc: "통합된 리뷰 결과에서 치명적(CRITICAL) 이슈 존재 여부를 판정한다. CRITICAL 이슈가 1개 이상이면 FAIL, 없으면 PASS"
+        input:
+          - reconcile
+        agent: code-level-validator
+    - evaluate:
+        desc: "통합된 리뷰 결과의 전체 코드 품질을 채점한다. 비즈니스 로직 정확성, 버그 위험도, 성능, 구조적 건전성, 패턴 준수를 종합 평가하고 개선 방향을 제시한다"
+        input:
+          - reconcile
+          - validate
+        agent: code-level-evaluator
+
+flow:
+  - retry:
+      condition: score < 80
+      max: 3
+      flow:
+        - parallel:
+          - review-business-logic
+          - review-bug
+          - review-performance
+          - review-dependency
+          - review-antipattern
+        - reconcile
+        - validate
+        - evaluate
+  - hitl
