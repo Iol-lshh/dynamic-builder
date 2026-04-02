@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# install-hooks — hooks와 settings.json을 ~/.claude에 설치한다
+# install-settings — hooks와 settings.json을 ~/.claude에 설치한다
 # 사용법:
-#   bash scripts/install-hooks.sh
+#   bash scripts/install-settings.sh
 
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 CLAUDE_DIR="${HOME}/.claude"
 
-echo "=== Install Hooks ==="
+echo "=== Install Settings ==="
 
 # ── hooks 복사 ──────────────────────────────────────────
 src_hooks="$REPO_DIR/.claude/hooks"
@@ -42,7 +42,7 @@ else
         permissions: {
           allow: (($dst.permissions.allow // []) + ($src.permissions.allow // []) | unique)
         },
-        hooks: ($dst.hooks // {}) * ($src.hooks // {})
+        hooks: (($dst.hooks // {}) * ($src.hooks // {}))
       }
     ' "$dst_settings" "$src_settings")
     echo "$merged" | jq '.' > "$dst_settings"
