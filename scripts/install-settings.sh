@@ -34,15 +34,14 @@ if [[ ! -f "$dst_settings" ]]; then
 else
   # jq가 있으면 deep merge, 없으면 수동 안내
   if command -v jq &>/dev/null; then
-    # permissions.allow: 합집합
-    # hooks: 소스 기준으로 덮어쓰기 (hook 정의는 리포 것을 정본으로 취급)
+    # dst 전체를 base로 src를 재귀 머지 (모든 최상위 키 보존, src 우선)
+    # permissions.allow만 합집합으로 오버라이드
     merged=$(jq -s '
       .[0] as $dst | .[1] as $src |
-      {
+      ($dst * $src) * {
         permissions: {
           allow: (($dst.permissions.allow // []) + ($src.permissions.allow // []) | unique)
-        },
-        hooks: (($dst.hooks // {}) * ($src.hooks // {}))
+        }
       }
     ' "$dst_settings" "$src_settings")
     echo "$merged" | jq '.' > "$dst_settings"
