@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# uninstall — dynamic-builder 플러그인이 ~/.claude에 설치한 모든 항목을 제거한다
+# uninstall — dynamic-builder 플러그인을 완전히 제거한다
+# 1. 빌드 산출물 삭제  2. 설정 되돌리기  3. 플러그인 삭제
 # 사용법:
 #   bash .setup/scripts/uninstall.sh           # 대화형 확인
 #   bash .setup/scripts/uninstall.sh --force   # 확인 없이 제거
@@ -7,6 +8,8 @@
 set -euo pipefail
 
 CLAUDE_DIR="${HOME}/.claude"
+PLUGIN_NAME="dynamic-builder"
+PLUGIN_DIR="$CLAUDE_DIR/plugins/marketplaces/$PLUGIN_NAME"
 FORCE=false
 [[ "${1:-}" == "--force" ]] && FORCE=true
 
@@ -17,19 +20,18 @@ confirm() {
   [[ "$ans" =~ ^[yY] ]]
 }
 
-echo "=== Uninstall dynamic-builder ==="
-echo "Target: $CLAUDE_DIR"
+echo "=== Uninstall $PLUGIN_NAME ==="
 echo ""
 
 # ── 1. 빌드 산출물 삭제 ───────────────────────────────────
-CLEAN_SCRIPT="$CLAUDE_DIR/scripts/clean-dynamic.sh"
+CLEAN_SCRIPT="$PLUGIN_DIR/scripts/clean-dynamic.sh"
 if [[ -f "$CLEAN_SCRIPT" ]]; then
   echo "--- 빌드 산출물 정리 ---"
   bash "$CLEAN_SCRIPT" || echo "[WARN] clean-dynamic.sh 실행 실패 (무시하고 계속)"
   echo ""
 fi
 
-# ── 2. 플러그인 설정 되돌리기 ──────────────────────────────
+# ── 2. 설정 되돌리기 ──────────────────────────────────────
 
 # hooks 제거
 HOOKS=(
@@ -84,47 +86,15 @@ if [[ -f "$SETTINGS" ]] && command -v jq &>/dev/null; then
   echo "[OK]   settings.json에서 스크립트 허용 항목 제거"
 fi
 
-# ── 3. 플러그인 의존성 삭제 ───────────────────────────────
-
-# scripts 제거
-SCRIPTS=(
-  build-dynamic.sh
-  clean-dynamic.sh
-  clean-worktree.sh
-)
-for s in "${SCRIPTS[@]}"; do
-  target="$CLAUDE_DIR/scripts/$s"
-  if [[ -f "$target" ]]; then
-    rm -f "$target"
-    echo "[OK]   scripts/$s 삭제"
+# ── 3. 플러그인 삭제 ──────────────────────────────────────
+if [[ -d "$PLUGIN_DIR" ]]; then
+  if confirm "삭제: $PLUGIN_DIR ?"; then
+    rm -rf "$PLUGIN_DIR"
+    echo "[OK]   플러그인 디렉토리 삭제"
+  else
+    echo "[SKIP] 플러그인 디렉토리"
   fi
-done
-if [[ -d "$CLAUDE_DIR/scripts" ]] && [[ -z "$(ls -A "$CLAUDE_DIR/scripts" 2>/dev/null)" ]]; then
-  rmdir "$CLAUDE_DIR/scripts"
-  echo "[OK]   scripts/ 디렉토리 삭제 (비어있음)"
-fi
-
-# references 제거
-REFS=(
-  Wikipedia_Signs_of_AI_writing_EN.md
-  Wikipedia_Signs_of_AI_writing_KR.md
-  condition-coverage-guide.md
-  context-isolation-principle.md
-  figma-access.md
-  test-rules.md
-  usecase-guide.md
-)
-for r in "${REFS[@]}"; do
-  target="$CLAUDE_DIR/references/$r"
-  if [[ -f "$target" ]]; then
-    rm -f "$target"
-    echo "[OK]   references/$r 삭제"
-  fi
-done
-if [[ -d "$CLAUDE_DIR/references" ]] && [[ -z "$(ls -A "$CLAUDE_DIR/references" 2>/dev/null)" ]]; then
-  rmdir "$CLAUDE_DIR/references"
-  echo "[OK]   references/ 디렉토리 삭제 (비어있음)"
 fi
 
 echo ""
-echo "Done. dynamic-builder 제거 완료."
+echo "Done. $PLUGIN_NAME 제거 완료."

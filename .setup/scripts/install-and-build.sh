@@ -13,7 +13,9 @@ bash "$SCRIPT_DIR/install-plugin.sh"
 echo ""
 
 # ── 2. 빌드 ─────────────────────────────────────────────
-BUILD_SCRIPT="$HOME/.claude/scripts/build-dynamic.sh"
+REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+PLUGIN_DIR="$HOME/.claude/plugins/marketplaces/dynamic-builder"
+BUILD_SCRIPT="$PLUGIN_DIR/scripts/build-dynamic.sh"
 if [[ -f "$BUILD_SCRIPT" ]]; then
   bash "$BUILD_SCRIPT"
 else
