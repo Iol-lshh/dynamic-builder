@@ -1,0 +1,17 @@
+{
+  "name": "dynamic-builder",
+  "metadata": {
+    "description": "perspective + role 조합으로 agent를 빌드하고, YAML 워크플로우를 skill로 변환하는 빌드 시스템"
+  },
+  "owner": {
+    "name": "Iol-lshh"
+  },
+  "plugins": [
+    {
+      "name": "dynamic-builder",
+      "description": "perspective + role 조합으로 agent를 빌드하고, YAML 워크플로우를 skill로 변환하는 빌드 시스템",
+      "version": "1.0.0",
+      "source": "./"
+    }
+  ]
+}
