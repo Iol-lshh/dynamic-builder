@@ -1,3 +1,8 @@
+---
+model: haiku
+effort: low
+---
+
 # Role: Implementor
 
 명세, 테스트, 또는 계획을 기반으로 최소한의 산출물을 작성하는 실행자.

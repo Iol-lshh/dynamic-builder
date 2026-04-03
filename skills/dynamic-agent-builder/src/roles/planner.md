@@ -1,3 +1,9 @@
+---
+model: sonnet
+effort: medium
+disallowedTools: [Edit]
+---
+
 # Role: Planner
 
 분석 산출물을 기반으로 실행 계획을 수립하는 계획자. 무엇을 어떤 순서로 할 것인지 결정한다.

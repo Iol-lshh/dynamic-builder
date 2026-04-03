@@ -112,35 +112,63 @@ function injectTags(body) {
   return body;
 }
 
-// ── 핵심: 병합 ────────────────────────────────────────────
+// ── Role frontmatter 캐시 ─────────────────────────────────
+const roleMetaCache = {};
+
+function getRoleMeta(roleName) {
+  if (roleMetaCache[roleName]) return roleMetaCache[roleName];
+
+  const rolePath = path.join(ROLES_DIR, `${roleName}.md`);
+  if (!fs.existsSync(rolePath)) return {};
+
+  const { meta } = parseFrontmatter(readFile(rolePath));
+  roleMetaCache[roleName] = meta;
+  return meta;
+}
+
+function extractRoleName(body) {
+  const match = body.match(/<Role name="([^"]+)">/);
+  return match ? match[1] : null;
+}
+
+// ── 핵심: 병합 (role default → template override) ─────────
 function buildAgent(templateFile) {
   const templateName = path.basename(templateFile, ".md");
   const templateContent = readFile(templateFile);
-  const { meta, body } = parseFrontmatter(templateContent);
+  const { meta: templateMeta, body } = parseFrontmatter(templateContent);
 
-  const agentName = meta.name || templateName;
-  const description = meta.description || "";
-  const model = meta.model || "sonnet";
-  const disallowedTools = meta.disallowedTools || [];
+  // Role의 default frontmatter를 가져온다
+  const roleName = extractRoleName(body);
+  const roleMeta = roleName ? getRoleMeta(roleName) : {};
 
-  const toolsLine =
-    disallowedTools.length > 0
-      ? `disallowedTools: [${disallowedTools.join(", ")}]\n`
-      : "";
+  // role default → template override 순서로 병합
+  const merged = { ...roleMeta, ...templateMeta };
+
+  const agentName = merged.name || templateName;
+  const description = merged.description || "";
+  const model = merged.model || "sonnet";
+  const effort = merged.effort;
+  const maxTokens = merged.maxTokens;
+  const disallowedTools = merged.disallowedTools || [];
+
+  const lines = [
+    `name: ${agentName}`,
+    `description: ${description}`,
+    `model: ${model}`,
+  ];
+  if (effort) lines.push(`effort: ${effort}`);
+  if (maxTokens) lines.push(`maxTokens: ${maxTokens}`);
+  if (disallowedTools.length > 0)
+    lines.push(`disallowedTools: [${disallowedTools.join(", ")}]`);
 
   const injectedBody = injectTags(body);
 
-  const merged = `---
-name: ${agentName}
-description: ${description}
-model: ${model}
-${toolsLine}---
-${injectedBody}`.trim();
+  const output = `---\n${lines.join("\n")}\n---\n${injectedBody}`.trim();
 
   fs.mkdirSync(BUILD_DIR, { recursive: true });
 
   const outFile = path.join(BUILD_DIR, `${agentName}.md`);
-  fs.writeFileSync(outFile, merged, "utf-8");
+  fs.writeFileSync(outFile, output, "utf-8");
 
   console.log(`✓ ${agentName} → agents/${agentName}.md`);
 }

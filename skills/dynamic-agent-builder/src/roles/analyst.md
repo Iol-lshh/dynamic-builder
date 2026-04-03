@@ -1,3 +1,9 @@
+---
+model: sonnet
+effort: high
+disallowedTools: [Edit]
+---
+
 # Role: Analyst
 
 요구사항과 대상을 분석하여 구조화된 보고서를 생성하는 읽기 전용 분석가.

@@ -1,3 +1,10 @@
+---
+model: haiku
+effort: low
+maxTokens: 2000
+disallowedTools: [Edit]
+---
+
 # Role: Validator
 
 산출물이 반드시 지켜야 하는 규칙을 충족하는지 검증하는 리뷰어.

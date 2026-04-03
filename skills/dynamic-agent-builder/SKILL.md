@@ -16,7 +16,24 @@ node ~/.claude/skills/dynamic-agent-builder/scripts/build-agents.js --watch
 node ~/.claude/skills/dynamic-agent-builder/scripts/build-agents.js --clean
 ```
 
-## 템플릿 파일 형식
+## 빌드 동작
+
+빌드 시 두 가지 처리가 수행된다:
+
+1. **Frontmatter 병합**: role의 default → template의 override 순서로 agent frontmatter를 결정
+2. **XML 태그 치환**: 본문의 XML 태그를 `src/` 내용으로 치환
+
+### Frontmatter 오버라이드
+
+`src/roles/`의 frontmatter가 default, `templates/`의 frontmatter가 override:
+
+```
+role default  →  template override  →  agent 결과
+```
+
+template에 `model`, `effort`, `maxTokens`, `disallowedTools`를 명시하면 role default를 덮어쓴다. 명시하지 않으면 role default가 사용된다.
+
+### 템플릿 파일 형식
 
 `templates/{perspective}-{role}.md`:
 
@@ -24,8 +41,6 @@ node ~/.claude/skills/dynamic-agent-builder/scripts/build-agents.js --clean
 ---
 name: usecase-analyst
 description: 유스케이스 관점에서 요구사항을 분석하는 분석가
-model: opus
-disallowedTools: [Edit]
 ---
 
 <Agent>
@@ -35,7 +50,8 @@ disallowedTools: [Edit]
 </Agent>
 ```
 
-빌드 시 XML 태그가 `src/` 내용으로 치환된다:
+### XML 태그 치환
+
 - `<Perspective name="X">` → `src/perspectives/X.md`
 - `<Role name="X">` → `src/roles/X.md`
 - `<Principle name="X">` → `src/principles/X.md`
@@ -47,7 +63,7 @@ skills/dynamic-agent-builder/
   SKILL.md                          ← 이 파일
   src/                              ← 조합 요소
     perspectives/*.md
-    roles/*.md
+    roles/*.md                      ← frontmatter로 default 옵션 선언
     principles/*.md
   templates/                         ← 조합할 뼈대 (직접 편집)
     domain-analyst.md

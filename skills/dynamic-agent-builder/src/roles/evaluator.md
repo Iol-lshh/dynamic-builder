@@ -1,3 +1,10 @@
+---
+model: sonnet
+effort: medium
+maxTokens: 4000
+disallowedTools: [Edit]
+---
+
 # Role: Evaluator
 
 산출물의 품질을 기준표에 따라 채점하는 평가자.

@@ -82,7 +82,7 @@ domain-analyst   ──→  도메인 모델 수준 분석
 
 ## src 작성법
 
-`src/` 디렉토리에는 세 종류의 구성 요소가 있다. 각 파일은 순수 마크다운으로, frontmatter 없이 작성한다.
+`src/` 디렉토리에는 세 종류의 구성 요소가 있다. role 파일은 frontmatter로 default 옵션을 선언할 수 있고, perspective와 principle 파일은 순수 마크다운으로 작성한다.
 
 ### Perspective (`src/perspectives/`)
 
@@ -139,7 +139,36 @@ agent가 세상을 보는 렌즈. 어떤 추상화 수준에서 사고할지 결
 
 ### Role (`src/roles/`)
 
-agent가 무엇을 담당하고 어떻게 행동하는지 정의한다.
+agent가 무엇을 담당하고 어떻게 행동하는지 정의한다. role 파일은 frontmatter로 **default 옵션**을 선언할 수 있다.
+
+**구조:**
+
+```markdown
+---
+model: {opus | sonnet | haiku}
+effort: {low | medium | high | max}
+maxTokens: {숫자}
+disallowedTools: [{금지 도구 목록}]
+---
+
+# Role: {역할 이름}
+
+{한 줄 요약}
+
+## 담당
+...
+```
+
+**frontmatter 필드 (모두 선택):**
+
+| 필드 | 설명 | 예시 |
+|---|---|---|
+| `model` | 이 role의 기본 모델 | `sonnet` |
+| `effort` | 이 role의 기본 reasoning effort | `high` |
+| `maxTokens` | 이 role의 기본 최대 출력 토큰 | `2000` |
+| `disallowedTools` | 이 role의 기본 금지 도구 | `[Edit]` |
+
+role frontmatter는 **default**이며, template frontmatter가 **override**한다. 상세 규칙은 [Frontmatter 오버라이드 규칙](#frontmatter-오버라이드-규칙)을 참고한다.
 
 **필수 섹션:**
 
@@ -173,12 +202,16 @@ agent가 무엇을 담당하고 어떻게 행동하는지 정의한다.
 
 **현재 정의된 role:**
 
-| Role | 요약 | 도구 제약 |
-|---|---|---|
-| `analyst` | 요구사항 분석, 보고서 생성 (읽기 전용) | Edit 사용 금지 |
-| `validator` | 산출물 규칙 준수 여부 검증, 합격/불합격 판정 | Edit 사용 금지 |
-| `evaluator` | 산출물 품질 채점, 개선 방향 제시 | Edit 사용 금지 |
-| `implementor` | 명세/테스트 기반 최소 구현 | 없음 |
+| Role | 요약 | model | effort | maxTokens |
+|---|---|---|---|---|
+| `analyst` | 요구사항 분석, 보고서 생성 (읽기 전용) | sonnet | high | - |
+| `advisor` | 정체 상황 분석, 대안 제시 | opus | high | - |
+| `planner` | 실행 계획 수립 | sonnet | medium | - |
+| `reconciler` | 복수 산출물 통합·조율 | sonnet | medium | - |
+| `validator` | 산출물 규칙 준수 여부 검증, 합격/불합격 판정 | haiku | low | 2000 |
+| `builder` | 명세/테스트 기반 최소 구현 | haiku | low | - |
+| `evaluator` | 산출물 품질 채점, 개선 방향 제시 | sonnet | medium | 4000 |
+| `executor` | 주어진 작업 직접 실행 | haiku | low | - |
 
 ### Principle (`src/principles/`)
 
@@ -253,12 +286,81 @@ disallowedTools: [{금지 도구 목록}]
 
 ### Frontmatter 필드
 
-| 필드 | 필수 | 기본값 | 설명 |
-|---|---|---|---|
-| `name` | O | 파일명 | agent 이름. 빌드 결과 파일명에도 사용 |
-| `description` | O | `""` | agent의 한 줄 설명 |
-| `model` | - | `sonnet` | 사용할 모델 |
-| `disallowedTools` | - | `[]` | 금지할 도구 목록 (예: `[Edit]`) |
+| 필드 | 필수 | 설명 |
+|---|---|---|
+| `name` | O | agent 이름. 빌드 결과 파일명에도 사용 |
+| `description` | O | agent의 한 줄 설명 |
+| `model` | - | 사용할 모델 (override) |
+| `effort` | - | reasoning effort (override) |
+| `maxTokens` | - | 최대 출력 토큰 (override) |
+| `disallowedTools` | - | 금지할 도구 목록 (override) |
+
+`name`과 `description`은 template에서만 정의한다. 나머지 필드는 role의 default를 상속하며, template에 명시하면 override한다.
+
+### Frontmatter 오버라이드 규칙
+
+빌드 시 agent의 frontmatter는 **role default → template override** 순서로 결정된다.
+
+```
+role frontmatter (default)  →  template frontmatter (override)  →  agent frontmatter (결과)
+```
+
+- template에 필드가 없으면 role의 값을 사용한다
+- template에 필드가 있으면 role의 값을 덮어쓴다
+- `name`, `description`은 항상 template에서 가져온다
+
+**예시:**
+
+role (`validator.md`):
+```yaml
+---
+model: haiku
+effort: low
+maxTokens: 2000
+disallowedTools: [Edit]
+---
+```
+
+template (`code-level-validator.md`) — override 없음:
+```yaml
+---
+name: code-level-validator
+description: 코드 구현 관점에서 산출물을 검증하는 검증자.
+---
+```
+
+빌드 결과 (`agents/code-level-validator.md`):
+```yaml
+---
+name: code-level-validator
+description: 코드 구현 관점에서 산출물을 검증하는 검증자.
+model: haiku          ← role default
+effort: low           ← role default
+maxTokens: 2000       ← role default
+disallowedTools: [Edit]  ← role default
+---
+```
+
+template (`security-driven-validator.md`) — model override:
+```yaml
+---
+name: security-driven-validator
+description: 보안 관점에서 산출물을 검증하는 리뷰어.
+model: sonnet
+---
+```
+
+빌드 결과 (`agents/security-driven-validator.md`):
+```yaml
+---
+name: security-driven-validator
+description: 보안 관점에서 산출물을 검증하는 리뷰어.
+model: sonnet         ← template override
+effort: low           ← role default
+maxTokens: 2000       ← role default
+disallowedTools: [Edit]  ← role default
+---
+```
 
 ### 조합 규칙
 
@@ -268,14 +370,12 @@ disallowedTools: [{금지 도구 목록}]
 
 ### 예시
 
-**분석가 (읽기 전용)**:
+**분석가 (role default 사용)**:
 
 ```markdown
 ---
 name: usecase-analyst
 description: 유스케이스 관점에서 요구사항을 분석하는 분석가. 행위자·흐름·사전사후조건 중심.
-model: opus
-disallowedTools: [Edit]
 ---
 
 <Agent>
@@ -285,21 +385,42 @@ disallowedTools: [Edit]
 </Agent>
 ```
 
-**구현자 (쓰기 가능)**:
+→ analyst role의 default (`model: sonnet`, `effort: high`, `disallowedTools: [Edit]`)가 적용된다.
+
+**구현자 (role default 사용)**:
 
 ```markdown
 ---
-name: code-level-implementor
+name: code-level-builder
 description: 코드 구현 관점에서 최소한의 산출물을 작성하는 구현자. TDD GREEN·패턴 일치 중심.
-model: sonnet
 ---
 
 <Agent>
   <Perspective name="code-level"></Perspective>
-  <Role name="implementor"></Role>
+  <Role name="builder"></Role>
   <Principle name="common"></Principle>
 </Agent>
 ```
+
+→ builder role의 default (`model: haiku`, `effort: low`)가 적용된다.
+
+**특정 agent만 override**:
+
+```markdown
+---
+name: security-driven-analyst
+description: 보안 관점에서 위협과 취약점을 분석하는 분석가.
+model: opus
+---
+
+<Agent>
+  <Perspective name="security-driven"></Perspective>
+  <Role name="analyst"></Role>
+  <Principle name="common"></Principle>
+</Agent>
+```
+
+→ analyst role default에서 `model`만 opus로 override된다.
 
 ## 새 agent 추가 절차
 
