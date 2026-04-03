@@ -161,19 +161,23 @@ flow:
 
 **현재 정의된 workflow**
 
-| Workflow | 설명 |
-|---|---|
-| `spec-workflow` | 요구사항 → 유스케이스/도메인 분석 → 검증 |
-| `tdd-workflow` | 트레이드오프 분석 → TDD Red/Green → 품질 검증 |
-| `coverage-workflow` | 테스트 커버리지 분석 → 계획 → 구현 |
+| Workflow | 설명                                   |
+|---|--------------------------------------|
+| `spec-workflow` | 요구사항 → 유스케이스/도메인 분석 → 검증             |
+| `tdd-workflow` | 트레이드오프 분석 → TDD Red/Green → 품질 검증    |
+| `coverage-workflow` | 테스트 커버리지 분석 → 계획 → 구현                |
 | `page-workflow` | Controller/퍼블 HTML → 화면 명세 → 구현 → 검증 |
-| `code-review-workflow` | 코드 리뷰 프로세스 |
-| `report-workflow` | 문서 생성 워크플로우 |
-| `essay-analysis-workflow` | 에세이 다관점 분석 |
-| `nonfiction-writing-workflow` | 논픽션 글쓰기 워크플로우 |
-| `create-workflow-blueprint` | 워크플로우 템플릿 생성 |
-| `worktree-entry-workflow` | 작업 시작 시 git worktree 생성 및 세션 전환 |
-| `worktree-close-workflow` | 작업 종료 시 worktree 정리 및 복귀 |
+| `code-review-workflow` | 코드 리뷰 프로세스                           |
+| `report-workflow` | 문서 생성 워크플로우                          |
+| `essay-analysis-workflow` | 에세이 다관점 분석                           |
+| `nonfiction-writing-workflow` | 논픽션 글쓰기 워크플로우                        |
+| `create-workflow-blueprint` | **워크플로우 템플릿 생성**                     |
+
+**워크플로우 생성 흐름 (`create-workflow-blueprint`)**
+
+1. `create-workflow-blueprint` 실행 → `.local/{인자}/`에 워크플로우 YAML·에이전트 템플릿 설계 문서 생성
+2. 사용자가 검토 후 플러그인의 `src/templates/`, `src/perspectives/` 등에 수동 배치
+3. `build-dynamic.sh` 실행 → `~/.claude/agents/`, `~/.claude/skills/`에 빌드 반영
 
 ---
 
