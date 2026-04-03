@@ -26,6 +26,20 @@ for item in .claude-plugin skills scripts references CLAUDE.md; do
   fi
 done
 
+# ── settings.json에 마켓플레이스 & 플러그인 등록 ──────────────
+SETTINGS="${HOME}/.claude/settings.json"
+if command -v jq &>/dev/null && [[ -f "$SETTINGS" ]]; then
+  jq --arg name "$PLUGIN_NAME" --arg path "$PLUGIN_DIR" '
+    .extraKnownMarketplaces[$name] = {
+      "source": { "source": "directory", "path": $path }
+    }
+    | .enabledPlugins[($name + "@" + $name)] = true
+  ' "$SETTINGS" > "$SETTINGS.tmp" && mv "$SETTINGS.tmp" "$SETTINGS"
+  echo "[OK]   settings.json에 마켓플레이스 & 플러그인 등록"
+else
+  echo "[WARN] jq가 없거나 settings.json이 없어 수동 등록이 필요합니다."
+fi
+
 echo ""
 echo "Done. 플러그인이 설치되었습니다."
 echo "  $PLUGIN_DIR"

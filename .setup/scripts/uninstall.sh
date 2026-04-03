@@ -86,6 +86,16 @@ if [[ -f "$SETTINGS" ]] && command -v jq &>/dev/null; then
   echo "[OK]   settings.json에서 스크립트 허용 항목 제거"
 fi
 
+# settings.json에서 마켓플레이스 & 플러그인 등록 제거
+SETTINGS="$CLAUDE_DIR/settings.json"
+if [[ -f "$SETTINGS" ]] && command -v jq &>/dev/null; then
+  jq --arg name "$PLUGIN_NAME" '
+    del(.extraKnownMarketplaces[$name])
+    | del(.enabledPlugins[($name + "@" + $name)])
+  ' "$SETTINGS" > "$SETTINGS.tmp" && mv "$SETTINGS.tmp" "$SETTINGS"
+  echo "[OK]   settings.json에서 마켓플레이스 & 플러그인 등록 제거"
+fi
+
 # ── 3. 플러그인 삭제 ──────────────────────────────────────
 if [[ -d "$PLUGIN_DIR" ]]; then
   if confirm "삭제: $PLUGIN_DIR ?"; then
