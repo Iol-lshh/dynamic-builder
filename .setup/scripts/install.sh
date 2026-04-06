@@ -51,7 +51,18 @@ else
   echo ""
 fi
 
-# ── 2. 빌드 ─────────────────────────────────────────────
+# ── 2. hooks/settings 설치 ───────────────────────────────
+if $DO_SETTINGS; then
+  if confirm "설치: hooks와 settings.json을 ~/.claude/에 설치하시겠습니까?"; then
+    bash "$SCRIPT_DIR/install-settings.sh"
+    echo ""
+  else
+    echo "[SKIP] hooks/settings"
+    echo ""
+  fi
+fi
+
+# ── 3. 빌드 ─────────────────────────────────────────────
 if $DO_BUILD; then
   AGENT_SCRIPT="$PLUGIN_DIR/skills/dynamic-agent-builder/scripts/build-agents.js"
   WORKFLOW_SCRIPT="$PLUGIN_DIR/skills/dynamic-workflow-builder/scripts/build-workflow.js"
@@ -81,17 +92,6 @@ if $DO_BUILD; then
     fi
   else
     echo "[SKIP] 빌드"
-    echo ""
-  fi
-fi
-
-# ── 3. hooks/settings 설치 ───────────────────────────────
-if $DO_SETTINGS; then
-  if confirm "설치: hooks와 settings.json을 ~/.claude/에 설치하시겠습니까?"; then
-    bash "$SCRIPT_DIR/install-settings.sh"
-    echo ""
-  else
-    echo "[SKIP] hooks/settings"
     echo ""
   fi
 fi
