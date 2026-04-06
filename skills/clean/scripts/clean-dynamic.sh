@@ -7,6 +7,11 @@
 
 set -euo pipefail
 
+# homebrew node PATH 보정 (Claude Code 셸 환경에서 누락될 수 있음)
+for p in /opt/homebrew/bin /usr/local/bin; do
+  [[ -d "$p" ]] && [[ ":$PATH:" != *":$p:"* ]] && export PATH="$p:$PATH"
+done
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_DIR="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")"
 
