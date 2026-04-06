@@ -23,16 +23,66 @@ dynamic-builder/
 └── references/                 ← agent가 참조하는 공통 문서
 ```
 
-### ~/.claude/ 빌드 산출물 (자동 생성)
+### 빌드 산출물 (자동 생성)
 
 ```
 ~/.claude/
-  agents/                       ← 빌드된 agent (자동 생성)
+  agents/                       ← 빌드된 agent (글로벌/기본)
   skills/
-    {workflow-name}/            ← 빌드된 workflow skill (자동 생성)
+    {workflow-name}/            ← 빌드된 workflow skill (글로벌/기본)
       SKILL.md
       references/
+
+{project}/.claude/
+  agents/                       ← 빌드된 agent (프로젝트)
+  skills/
+    {workflow-name}/            ← 빌드된 workflow skill (프로젝트)
 ```
+
+### 3-tier 스코프 체인
+
+빌드 시 소스를 3단계로 해석한다. 같은 이름의 파일은 상위 스코프가 우선한다.
+
+```
+프로젝트 ({project}/.claude/dynamic-builder/)  ← 최우선
+  ↓ fallback
+글로벌 (~/.claude/dynamic-builder/)
+  ↓ fallback
+기본 (플러그인 내부 src/)
+```
+
+| 스코프 | 소스 위치 | 빌드 출력 |
+|---|---|---|
+| 프로젝트 | `{project}/.claude/dynamic-builder/build-agent/src/` | `{project}/.claude/agents/` |
+| 글로벌 | `~/.claude/dynamic-builder/build-agent/src/` | `~/.claude/agents/` |
+| 기본 | 플러그인 내부 `skills/build-agent/src/` | `~/.claude/agents/` |
+
+사용자 소스 디렉토리 구조:
+
+```
+~/.claude/dynamic-builder/          # 글로벌 사용자 소스
+  build-agent/
+    src/perspectives/, roles/, principles/, templates/
+    .build-index.local.json
+  build-workflow/
+    src/templates/, details/
+    .build-index.local.json
+
+{project}/.claude/dynamic-builder/  # 프로젝트 사용자 소스
+  build-agent/
+    src/perspectives/, roles/, principles/, templates/
+    .build-index.local.json
+  build-workflow/
+    src/templates/, details/
+    .build-index.local.json
+```
+
+실행 위치에 따른 동작:
+
+| 실행 위치 | build | clean |
+|---|---|---|
+| 프로젝트 밖 | 기본+글로벌 → `~/.claude/` | 글로벌 인덱스 → `~/.claude/` 삭제 |
+| 프로젝트 안 | 기본+글로벌 → `~/.claude/` + 프로젝트 → `{project}/.claude/` | 글로벌 + 프로젝트 인덱스 삭제 |
 
 ### Hooks/Settings (.setup/)
 
@@ -56,9 +106,10 @@ dynamic-builder/
 **빌드**
 
 ```bash
-node ~/.claude/skills/build-agent/scripts/build-agents.js
-node ~/.claude/skills/build-agent/scripts/build-agents.js --watch
-node ~/.claude/skills/build-agent/scripts/build-agents.js --clean
+/dynamic-builder:build --agent
+/dynamic-builder:build-agent
+/dynamic-builder:build-agent --watch
+/dynamic-builder:build-agent --clean
 ```
 
 **구성 요소**
@@ -100,11 +151,11 @@ node ~/.claude/skills/build-agent/scripts/build-agents.js --clean
 | `root-cause-focus` | 근본 원인 분석 |
 | `scope-containment` | 범위 관리 |
 
-**새 agent 추가**
+**새 agent 추가 (플러그인 수정 없이)**
 
-1. 필요한 perspective / role이 없으면 `src/` 에 추가
-2. `src/templates/{perspective}-{role}.md` 뼈대 생성
-3. 빌드 실행 → `~/.claude/agents/` 에 생성됨
+1. `~/.claude/dynamic-builder/build-agent/src/` 아래에 필요한 perspective / role / template 추가
+2. 프로젝트 전용이면 `{project}/.claude/dynamic-builder/build-agent/src/`에 추가
+3. 빌드 실행 → 해당 스코프의 출력 위치에 생성됨
 
 ---
 
@@ -115,12 +166,13 @@ YAML로 정의된 workflow를 skill로 빌드하는 시스템.
 **빌드**
 
 ```bash
-node ~/.claude/skills/build-workflow/scripts/build-workflow.js
-node ~/.claude/skills/build-workflow/scripts/build-workflow.js --watch
-node ~/.claude/skills/build-workflow/scripts/build-workflow.js --clean
+/dynamic-builder:build --workflow
+/dynamic-builder:build-workflow
+/dynamic-builder:build-workflow --watch
+/dynamic-builder:build-workflow --clean
 ```
 
-빌드 결과: `~/.claude/skills/{name}/SKILL.md` + `references/`
+빌드 결과: `~/.claude/skills/{name}/SKILL.md` + `references/` (또는 프로젝트 스코프면 `{project}/.claude/skills/`)
 
 **workflow 정의 구조**
 
@@ -179,11 +231,18 @@ flow:
 | `nonfiction-writing-workflow` | 논픽션 글쓰기 워크플로우                        |
 | `create-workflow-blueprint` | **워크플로우 템플릿 생성**                     |
 
+**새 workflow 추가 (플러그인 수정 없이)**
+
+1. `~/.claude/dynamic-builder/build-workflow/src/templates/`에 YAML 파일 추가
+2. 필요한 details 파일은 `src/details/`에 추가
+3. 프로젝트 전용이면 `{project}/.claude/dynamic-builder/build-workflow/src/`에 추가
+4. 빌드 실행 → 해당 스코프의 출력 위치에 생성됨
+
 **워크플로우 생성 흐름 (`create-workflow-blueprint`)**
 
 1. `create-workflow-blueprint` 실행 → `.local/{인자}/`에 워크플로우 YAML·에이전트 템플릿 설계 문서 생성
-2. 사용자가 검토 후 플러그인의 `src/templates/`, `src/perspectives/` 등에 수동 배치
-3. `/dynamic-builder:build` 실행 → `~/.claude/agents/`, `~/.claude/skills/`에 빌드 반영
+2. 사용자가 검토 후 적절한 스코프의 `src/templates/`, `src/perspectives/` 등에 배치
+3. `/dynamic-builder:build` 실행 → 빌드 반영
 
 ---
 
