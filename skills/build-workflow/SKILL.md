@@ -1,5 +1,5 @@
 ---
-name: dynamic-workflow-builder
+name: build-workflow
 description: 워크플로우 정의 파일을 읽어 step들을 제어 흐름(flow, parallel, if, retry)에 따라 실행한다.
 argument-hint: [--watch|--clean|<workflow-yaml-path>]
 ---
@@ -13,9 +13,9 @@ argument-hint: [--watch|--clean|<workflow-yaml-path>]
 ## 사용법
 
 ```bash
-node ~/.claude/skills/dynamic-workflow-builder/scripts/build-workflow.js
-node ~/.claude/skills/dynamic-workflow-builder/scripts/build-workflow.js --watch
-node ~/.claude/skills/dynamic-workflow-builder/scripts/build-workflow.js --clean
+node ~/.claude/skills/build-workflow/scripts/build-workflow.js
+node ~/.claude/skills/build-workflow/scripts/build-workflow.js --watch
+node ~/.claude/skills/build-workflow/scripts/build-workflow.js --clean
 ```
 
 ## 워크플로우 파일 형식
@@ -60,7 +60,7 @@ flow:
 ## 파일 구조
 
 ```
-skills/dynamic-workflow-builder/
+skills/build-workflow/
   SKILL.md                          ← 이 파일
   references/
     GRAMMAR.md                      ← 워크플로우 정의 문법

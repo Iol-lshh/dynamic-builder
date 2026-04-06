@@ -8,10 +8,10 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PLUGIN_DIR="$(dirname "$SCRIPT_DIR")"
+PLUGIN_DIR="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")"
 
-AGENT_SCRIPT="$PLUGIN_DIR/skills/dynamic-agent-builder/scripts/build-agents.js"
-WORKFLOW_SCRIPT="$PLUGIN_DIR/skills/dynamic-workflow-builder/scripts/build-workflow.js"
+AGENT_SCRIPT="$PLUGIN_DIR/skills/build-agent/scripts/build-agents.js"
+WORKFLOW_SCRIPT="$PLUGIN_DIR/skills/build-workflow/scripts/build-workflow.js"
 
 build_agent=false
 build_workflow=false

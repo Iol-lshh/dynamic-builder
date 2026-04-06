@@ -11,8 +11,8 @@
  *   node build-workflow.js --clean
  *
  * 입력:
- *   skills/dynamic-workflow-builder/src/templates/*.yaml
- *   skills/dynamic-workflow-builder/src/details/*.md
+ *   skills/build-workflow/src/templates/*.yaml
+ *   skills/build-workflow/src/details/*.md
  *
  * 출력:
  *   skills/{name}/SKILL.md
@@ -486,7 +486,7 @@ description: Workflow: ${name}
 # Workflow: ${name}
 
 > 자동 생성된 스킬입니다. 직접 수정하지 마세요.
-> 소스: \`~/.claude/skills/dynamic-workflow-builder/src/templates/${name}.yaml\`
+> 소스: \`~/.claude/skills/build-workflow/src/templates/${name}.yaml\`
 ${warningSection}
 ## 산출물 디렉토리
 

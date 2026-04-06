@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 # install — dynamic-builder 플러그인 설치
 # 사용법:
-#   bash .setup/scripts/install.sh                    # 플러그인만 (기본)
-#   bash .setup/scripts/install.sh --build            # 플러그인 + 빌드
-#   bash .setup/scripts/install.sh --settings         # 플러그인 + hooks/settings
-#   bash .setup/scripts/install.sh --build --settings # 플러그인 + 빌드 + settings
-#   bash .setup/scripts/install.sh --all              # 전부
-#   bash .setup/scripts/install.sh --force            # 확인 없이 실행
+#   bash .setup/scripts/install.sh            # 전체 설치 (각 단계 확인)
+#   bash .setup/scripts/install.sh --force    # 확인 없이 전체 설치
+#   bash .setup/scripts/install.sh --plugin   # 플러그인만
+#   bash .setup/scripts/install.sh --settings # hooks/settings만
+#   bash .setup/scripts/install.sh --build    # 빌드만
 
 set -euo pipefail
 
@@ -14,23 +13,32 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_DIR="$HOME/.claude/plugins/marketplaces/dynamic-builder"
 
 # ── 옵션 파싱 ─────────────────────────────────────────────
+DO_PLUGIN=false
 DO_BUILD=false
 DO_SETTINGS=false
 FORCE=false
+HAS_STEP=false
 
 for arg in "$@"; do
   case "$arg" in
-    --all)       DO_BUILD=true; DO_SETTINGS=true ;;
-    --build)     DO_BUILD=true ;;
-    --settings)  DO_SETTINGS=true ;;
+    --plugin)    DO_PLUGIN=true;   HAS_STEP=true ;;
+    --build)     DO_BUILD=true;    HAS_STEP=true ;;
+    --settings)  DO_SETTINGS=true; HAS_STEP=true ;;
     --force)     FORCE=true ;;
     *)
       echo "[ERROR] 알 수 없는 옵션: $arg"
-      echo "사용법: install.sh [--build] [--settings] [--all] [--force]"
+      echo "사용법: install.sh [--plugin] [--settings] [--build] [--force]"
       exit 1
       ;;
   esac
 done
+
+# 개별 단계 지정이 없으면 전부 실행
+if ! $HAS_STEP; then
+  DO_PLUGIN=true
+  DO_SETTINGS=true
+  DO_BUILD=true
+fi
 
 confirm() {
   if $FORCE; then return 0; fi
@@ -42,13 +50,15 @@ confirm() {
 echo "=== Install dynamic-builder ==="
 echo ""
 
-# ── 1. 플러그인 설치 (항상) ───────────────────────────────
-if confirm "설치: 플러그인을 ~/.claude/plugins/marketplaces/에 복사하시겠습니까?"; then
-  bash "$SCRIPT_DIR/install-plugin.sh"
-  echo ""
-else
-  echo "[SKIP] 플러그인 설치"
-  echo ""
+# ── 1. 플러그인 설치 ─────────────────────────────────────
+if $DO_PLUGIN; then
+  if confirm "설치: 플러그인을 ~/.claude/plugins/marketplaces/에 복사하시겠습니까?"; then
+    bash "$SCRIPT_DIR/install-plugin.sh"
+    echo ""
+  else
+    echo "[SKIP] 플러그인 설치"
+    echo ""
+  fi
 fi
 
 # ── 2. hooks/settings 설치 ───────────────────────────────
@@ -64,8 +74,8 @@ fi
 
 # ── 3. 빌드 ─────────────────────────────────────────────
 if $DO_BUILD; then
-  AGENT_SCRIPT="$PLUGIN_DIR/skills/dynamic-agent-builder/scripts/build-agents.js"
-  WORKFLOW_SCRIPT="$PLUGIN_DIR/skills/dynamic-workflow-builder/scripts/build-workflow.js"
+  AGENT_SCRIPT="$PLUGIN_DIR/skills/build-agent/scripts/build-agents.js"
+  WORKFLOW_SCRIPT="$PLUGIN_DIR/skills/build-workflow/scripts/build-workflow.js"
 
   if confirm "실행: agent 빌드를 실행하시겠습니까?"; then
     if [[ -f "$AGENT_SCRIPT" ]]; then

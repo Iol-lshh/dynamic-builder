@@ -193,7 +193,7 @@ review 이후에 score(100점 만점) 표현식 확인을 거친다.
 ## 파일 구조
 
 ```
-skills/dynamic-workflow-builder/
+skills/build-workflow/
   SKILL.md                        ← skill 정의 (스크립트 실행)
   references/
     GRAMMAR.md                     ← 이 파일 (워크플로우 정의 문법)

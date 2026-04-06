@@ -1,6 +1,6 @@
 # /uninstall — 플러그인 완전 제거
 
-이 커맨드의 스크립트 위치: `<plugin-root>/.setup/scripts/uninstall.sh`
+이 커맨드의 스크립트 위치: `<plugin-root>/skills/uninstall/scripts/uninstall.sh`
 
 인자를 그대로 전달하여 실행한다.
 

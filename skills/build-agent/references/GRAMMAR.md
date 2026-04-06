@@ -42,16 +42,16 @@ templates/{name}.md  ──→  build-agents.js  ──→  agents/build/{name}.
 
 ```bash
 # 일회성 빌드
-node ~/.claude/skills/dynamic-agent-builder/scripts/build-agents.js
+node ~/.claude/skills/build-agent/scripts/build-agents.js
 
 # watch 모드 — src/ 또는 templates/ 변경 시 자동 재빌드
-node ~/.claude/skills/dynamic-agent-builder/scripts/build-agents.js --watch
+node ~/.claude/skills/build-agent/scripts/build-agents.js --watch
 ```
 
 ## 디렉토리 구조
 
 ```
-skills/dynamic-agent-builder/
+skills/build-agent/
   SKILL.md                        ← 스킬 정의 (Claude Code가 읽는 진입점)
   references/
     README.md                     ← 이 파일 (agent 구성 체계 + 빌드 시스템 설명)

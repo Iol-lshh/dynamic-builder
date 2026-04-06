@@ -11,9 +11,15 @@ dynamic-builder/
 ├── .claude-plugin/
 │   └── plugin.json             ← 플러그인 매니페스트
 ├── skills/
-│   ├── dynamic-agent-builder/  ← agent 빌드 시스템
-│   └── dynamic-workflow-builder/ ← workflow 빌드 시스템
-├── scripts/                    ← 빌드/정리 스크립트
+│   ├── build-agent/            ← agent 빌드 시스템
+│   ├── build-workflow/         ← workflow 빌드 시스템
+│   ├── build/                  ← agent + workflow 통합 빌드
+│   ├── clean/                  ← 빌드 산출물 삭제
+│   ├── clean-worktree/         ← worktree 정리
+│   └── uninstall/              ← 플러그인 제거
+├── .setup/                     ← 설치/환경 구성
+│   ├── hooks/
+│   └── scripts/
 └── references/                 ← agent가 참조하는 공통 문서
 ```
 
@@ -43,16 +49,16 @@ dynamic-builder/
 
 ## Skills
 
-### dynamic-agent-builder
+### build-agent
 
 `perspective + role` 조합으로 agent를 빌드하는 시스템.
 
 **빌드**
 
 ```bash
-node ~/.claude/skills/dynamic-agent-builder/scripts/build-agents.js
-node ~/.claude/skills/dynamic-agent-builder/scripts/build-agents.js --watch
-node ~/.claude/skills/dynamic-agent-builder/scripts/build-agents.js --clean
+node ~/.claude/skills/build-agent/scripts/build-agents.js
+node ~/.claude/skills/build-agent/scripts/build-agents.js --watch
+node ~/.claude/skills/build-agent/scripts/build-agents.js --clean
 ```
 
 **구성 요소**
@@ -102,16 +108,16 @@ node ~/.claude/skills/dynamic-agent-builder/scripts/build-agents.js --clean
 
 ---
 
-### dynamic-workflow-builder
+### build-workflow
 
 YAML로 정의된 workflow를 skill로 빌드하는 시스템.
 
 **빌드**
 
 ```bash
-node ~/.claude/skills/dynamic-workflow-builder/scripts/build-workflow.js
-node ~/.claude/skills/dynamic-workflow-builder/scripts/build-workflow.js --watch
-node ~/.claude/skills/dynamic-workflow-builder/scripts/build-workflow.js --clean
+node ~/.claude/skills/build-workflow/scripts/build-workflow.js
+node ~/.claude/skills/build-workflow/scripts/build-workflow.js --watch
+node ~/.claude/skills/build-workflow/scripts/build-workflow.js --clean
 ```
 
 빌드 결과: `~/.claude/skills/{name}/SKILL.md` + `references/`
@@ -177,7 +183,7 @@ flow:
 
 1. `create-workflow-blueprint` 실행 → `.local/{인자}/`에 워크플로우 YAML·에이전트 템플릿 설계 문서 생성
 2. 사용자가 검토 후 플러그인의 `src/templates/`, `src/perspectives/` 등에 수동 배치
-3. `build-dynamic.sh` 실행 → `~/.claude/agents/`, `~/.claude/skills/`에 빌드 반영
+3. `/dynamic-builder:build` 실행 → `~/.claude/agents/`, `~/.claude/skills/`에 빌드 반영
 
 ---
 
@@ -195,23 +201,16 @@ flow:
 
 ---
 
-## Scripts
+## 스킬 커맨드
 
-`~/.claude/scripts/` 에 위치한 유틸리티 스크립트.
-
-| Script | 설명 | 주요 옵션 |
+| 커맨드 | 설명 | 주요 옵션 |
 |---|---|---|
-| `build-dynamic.sh` | agent + workflow 통합 빌드 | `--agent`, `--workflow` |
-| `clean-dynamic.sh` | 빌드 산출물 삭제 | `--agent`, `--workflow` |
-| `clean-worktree.sh` | 완료된 worktree 및 연결 브랜치 삭제 | `--all`, `--prunable`, `--dry-run`, `<name>` |
-
-```bash
-~/.claude/scripts/build-dynamic.sh            # 전체 빌드
-~/.claude/scripts/clean-dynamic.sh            # 전체 정리
-~/.claude/scripts/clean-worktree.sh           # 대화형 worktree 삭제
-~/.claude/scripts/clean-worktree.sh --all     # 전체 worktree 삭제
-~/.claude/scripts/clean-worktree.sh --prunable # prunable 상태만 정리
-```
+| `/dynamic-builder:build` | agent + workflow 통합 빌드 | `--agent`, `--workflow` |
+| `/dynamic-builder:clean` | 빌드 산출물 삭제 | `--agent`, `--workflow` |
+| `/dynamic-builder:clean-worktree` | worktree 및 연결 브랜치 삭제 | `--all`, `--prunable`, `--dry-run`, `<name>` |
+| `/dynamic-builder:build-agent` | agent 빌드 스킬 | `--watch`, `--clean` |
+| `/dynamic-builder:build-workflow` | workflow 빌드 스킬 | `--watch`, `--clean` |
+| `/dynamic-builder:uninstall` | 플러그인 완전 제거 | `--force` |
 
 ---
 
@@ -221,46 +220,32 @@ flow:
 
 ```bash
 git clone https://github.com/Iol-lshh/dynamic-builder.git
-```
-
-Claude Code 실행 시 `--plugin-dir`로 로드:
-
-```bash
-claude --plugin-dir ./dynamic-builder
-```
-
-플러그인 설치 후 skill 사용:
-
-```
-/dynamic-builder:dynamic-agent-builder
-/dynamic-builder:dynamic-workflow-builder
-```
-
-### 기존 방식 (~/.claude/에 복사)
-
-```bash
-git clone https://github.com/Iol-lshh/dynamic-builder.git
 cd dynamic-builder
+bash .setup/scripts/install.sh            # 전체 설치 (각 단계 확인)
+bash .setup/scripts/install.sh --force    # 확인 없이 전체 설치
 ```
 
-| Script | 설명 | 명령어 |
-|---|---|---|
-| `install-plugin.sh` | 플러그인 런타임 의존성 설치 (scripts, references, CLAUDE.md) | `bash .setup/scripts/install-plugin.sh` |
-| `install-and-build.sh` | 위 설치 + agent/workflow 빌드까지 실행 | `bash .setup/scripts/install-and-build.sh` |
-| `install-settings.sh` | hooks 복사 + settings.json 비교 머지 | `bash .setup/scripts/install-settings.sh` |
-| `uninstall.sh` | 빌드 산출물 + 설정 + 의존성 역순 제거 | `bash .setup/scripts/uninstall.sh` |
-
-**빠른 설치 (전체):**
+개별 설치:
 
 ```bash
-bash .setup/scripts/install-and-build.sh   # 의존성 + 빌드
-bash .setup/scripts/install-settings.sh    # hooks + settings
+bash .setup/scripts/install.sh --plugin   # 플러그인만
+bash .setup/scripts/install.sh --settings # hooks/settings만
+bash .setup/scripts/install.sh --build    # 빌드만
 ```
 
-**개별 빌드:**
+설치 후 스킬 사용:
+
+```
+/dynamic-builder:build
+/dynamic-builder:build-agent
+/dynamic-builder:build-workflow
+```
+
+### 제거
 
 ```bash
-~/.claude/scripts/build-dynamic.sh            # 전체 빌드
-~/.claude/scripts/build-dynamic.sh --agent    # agent만
-~/.claude/scripts/build-dynamic.sh --workflow # workflow만
+bash .setup/scripts/uninstall.sh          # 대화형 확인 후 제거
+bash .setup/scripts/uninstall.sh --force  # 확인 없이 제거
 ```
+
+또는 설치된 상태에서: `/dynamic-builder:uninstall`

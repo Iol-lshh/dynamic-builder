@@ -10,9 +10,9 @@
       "MultiEdit",
       "Bash",
       "NotebookEdit",
-      "Bash(bash ~/.claude/plugins/marketplaces/dynamic-builder/scripts/build-dynamic.sh*)",
-      "Bash(bash ~/.claude/plugins/marketplaces/dynamic-builder/scripts/clean-dynamic.sh*)",
-      "Bash(bash ~/.claude/plugins/marketplaces/dynamic-builder/scripts/clean-worktree.sh*)"
+      "Bash(bash ~/.claude/plugins/marketplaces/dynamic-builder/skills/build/scripts/build-dynamic.sh*)",
+      "Bash(bash ~/.claude/plugins/marketplaces/dynamic-builder/skills/clean/scripts/clean-dynamic.sh*)",
+      "Bash(bash ~/.claude/plugins/marketplaces/dynamic-builder/skills/clean-worktree/scripts/clean-worktree.sh*)"
     ]
   },
   "hooks": {
