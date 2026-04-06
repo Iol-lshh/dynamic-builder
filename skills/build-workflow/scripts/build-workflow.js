@@ -1,51 +1,94 @@
 #!/usr/bin/env node
 /**
- * Workflow 빌드 스크립트
+ * Workflow 빌드 스크립트 (3-tier scope chain)
  *
- * templates/*.yaml 워크플로우 정의를 읽어
- * ~/.claude/skills/{name}/ 에 SKILL.md + references/ 를 생성한다.
+ * 3단계 스코프 체인으로 소스를 해석하여 workflow skill을 빌드한다:
+ *   project (.claude/dynamic-builder/build-workflow/src/)  ← 최우선
+ *   global  (~/.claude/dynamic-builder/build-workflow/src/)
+ *   default (플러그인 내부 src/)
+ *
+ * details는 스코프 순서로 오버라이드.
+ * 템플릿은 스코프별로 수집하되, 상위 스코프가 같은 이름을 가리면 하위는 스킵.
+ * 빌드 출력 위치는 템플릿의 소스 스코프에 따라 결정:
+ *   project 템플릿 → {project}/.claude/skills/
+ *   global/default 템플릿 → ~/.claude/skills/
  *
  * 사용법:
  *   node build-workflow.js
  *   node build-workflow.js --watch
  *   node build-workflow.js --clean
- *
- * 입력:
- *   skills/build-workflow/src/templates/*.yaml
- *   skills/build-workflow/src/details/*.md
- *
- * 출력:
- *   skills/{name}/SKILL.md
- *   skills/{name}/references/{detail}.md
  */
 
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
+// ── 프로젝트 루트 탐색 ───────────────────────────────────────
+function findProjectRoot() {
+  const homeClaude = path.join(os.homedir(), ".claude");
+  let dir = process.cwd();
+  while (dir !== path.dirname(dir)) {
+    const candidate = path.join(dir, ".claude");
+    if (fs.existsSync(candidate) && candidate !== homeClaude) {
+      return dir;
+    }
+    dir = path.dirname(dir);
+  }
+  return null;
+}
+
 // ── 경로 설정 ──────────────────────────────────────────────
 const SKILL_DIR = path.resolve(__dirname, "..");
 const CLAUDE_DIR = path.join(os.homedir(), ".claude");
-const SRC_DIR = path.join(SKILL_DIR, "src");
-const TEMPLATE_DIR = path.join(SRC_DIR, "templates");
-const DETAILS_DIR = path.join(SRC_DIR, "details");
-const SKILLS_DIR = path.join(CLAUDE_DIR, "skills");
+const PROJECT_ROOT = findProjectRoot();
+
 const AGENTS_BUILD_DIR = path.join(CLAUDE_DIR, "agents");
 const REFERENCES_DIR = path.join(CLAUDE_DIR, "references");
-const BUILD_INDEX_FILE = path.join(SKILL_DIR, ".build-index.local.json");
+
+// 스코프 정의 (읽기 + 쓰기)
+const SCOPES = [
+  PROJECT_ROOT && {
+    name: "project",
+    srcDir: path.join(PROJECT_ROOT, ".claude/dynamic-builder/build-workflow/src"),
+    outputDir: path.join(PROJECT_ROOT, ".claude/skills"),
+    indexFile: path.join(PROJECT_ROOT, ".claude/dynamic-builder/build-workflow/.build-index.local.json"),
+  },
+  {
+    name: "global",
+    srcDir: path.join(CLAUDE_DIR, "dynamic-builder/build-workflow/src"),
+    outputDir: path.join(CLAUDE_DIR, "skills"),
+    indexFile: path.join(CLAUDE_DIR, "dynamic-builder/build-workflow/.build-index.local.json"),
+  },
+  {
+    name: "default",
+    srcDir: path.join(SKILL_DIR, "src"),
+    outputDir: path.join(CLAUDE_DIR, "skills"),
+    indexFile: path.join(CLAUDE_DIR, "dynamic-builder/build-workflow/.build-index.local.json"),
+  },
+].filter(Boolean);
 
 // ── 빌드 인덱스 ────────────────────────────────────────────
-function loadBuildIndex() {
-  if (!fs.existsSync(BUILD_INDEX_FILE)) return { generated: [] };
+function loadBuildIndex(indexFile) {
+  if (!fs.existsSync(indexFile)) return { generated: [] };
   try {
-    return JSON.parse(fs.readFileSync(BUILD_INDEX_FILE, "utf-8"));
+    return JSON.parse(fs.readFileSync(indexFile, "utf-8"));
   } catch {
     return { generated: [] };
   }
 }
 
-function saveBuildIndex(index) {
-  fs.writeFileSync(BUILD_INDEX_FILE, JSON.stringify(index, null, 2) + "\n", "utf-8");
+function saveBuildIndex(indexFile, index) {
+  fs.mkdirSync(path.dirname(indexFile), { recursive: true });
+  fs.writeFileSync(indexFile, JSON.stringify(index, null, 2) + "\n", "utf-8");
+}
+
+// ── 부품 해석: 스코프 체인으로 탐색 ──────────────────────────
+function resolveDetail(name) {
+  for (const scope of SCOPES) {
+    const filePath = path.join(scope.srcDir, "details", name);
+    if (fs.existsSync(filePath)) return filePath;
+  }
+  return null;
 }
 
 // ── YAML 파싱 ──────────────────────────────────────────────
@@ -90,7 +133,6 @@ function parseSteps(content) {
 
     if (indent === 0) break;
 
-    // 스텝 선언: "    - step-name:"
     if (trimmed.startsWith("- ") && trimmed.endsWith(":")) {
       const stepName = trimmed.slice(2, -1).trim();
       const step = { desc: "", agent: "", shell: "", tool: "", refs: [], details: [], input: [], output: null, params: {} };
@@ -446,7 +488,7 @@ function generateSkillMd(name, parsed) {
     })
     .join("\n");
 
-  // 검증
+  // 검증: 스코프 체인에서 details 탐색
   const warnings = [];
   for (const [stepName, { agent, shell, tool, refs, details }] of Object.entries(steps)) {
     if (!shell && !tool && !fs.existsSync(path.join(AGENTS_BUILD_DIR, `${agent}.md`))) {
@@ -455,7 +497,7 @@ function generateSkillMd(name, parsed) {
       );
     }
     for (const ref of refs) {
-      if (isPath(ref)) continue; // 경로 기반은 런타임에 해석
+      if (isPath(ref)) continue;
       if (!fs.existsSync(path.join(REFERENCES_DIR, ref))) {
         warnings.push(
           `- ${stepName}: ref \`${ref}\` not found in \`${REFERENCES_DIR}/\``
@@ -463,9 +505,9 @@ function generateSkillMd(name, parsed) {
       }
     }
     for (const det of details) {
-      if (!fs.existsSync(path.join(DETAILS_DIR, det))) {
+      if (!resolveDetail(det)) {
         warnings.push(
-          `- ${stepName}: details \`${det}\` not found in \`${DETAILS_DIR}/\``
+          `- ${stepName}: details \`${det}\` not found in any scope`
         );
       }
     }
@@ -486,7 +528,6 @@ description: Workflow: ${name}
 # Workflow: ${name}
 
 > 자동 생성된 스킬입니다. 직접 수정하지 마세요.
-> 소스: \`~/.claude/skills/build-workflow/src/templates/${name}.yaml\`
 ${warningSection}
 ## 산출물 디렉토리
 
@@ -531,37 +572,37 @@ ${raw.trim()}
 }
 
 // ── 스킬 디렉토리 삭제 ─────────────────────────────────────
-function removeSkillDir(name) {
-  const skillPath = path.join(SKILLS_DIR, name);
+function removeSkillDir(name, skillsDir) {
+  const skillPath = path.join(skillsDir, name);
   if (!fs.existsSync(skillPath)) return false;
   fs.rmSync(skillPath, { recursive: true, force: true });
   return true;
 }
 
 // ── 빌드 ──────────────────────────────────────────────────
-function buildWorkflow(templateFile) {
-  const name = path.basename(templateFile, ".yaml");
+function buildWorkflow(templateFile, skillsDir) {
+  const name = path.basename(templateFile, path.extname(templateFile));
   const parsed = parseWorkflowYaml(templateFile);
 
   if (Object.keys(parsed.steps).length === 0) {
     throw new Error("step 정의를 찾을 수 없습니다");
   }
 
-  const skillOutDir = path.join(SKILLS_DIR, name);
+  const skillOutDir = path.join(skillsDir, name);
   const refsOutDir = path.join(skillOutDir, "references");
 
   fs.mkdirSync(skillOutDir, { recursive: true });
 
-  // details 파일이 있을 때만 references/ 생성
+  // details 파일을 스코프 체인에서 탐색하여 복사
   const allDetails = new Set(
     Object.values(parsed.steps).flatMap((s) => s.details)
   );
   if (allDetails.size > 0) {
     fs.mkdirSync(refsOutDir, { recursive: true });
     for (const det of allDetails) {
-      const src = path.join(DETAILS_DIR, det);
+      const src = resolveDetail(det);
       const dst = path.join(refsOutDir, det);
-      if (fs.existsSync(src)) {
+      if (src) {
         fs.copyFileSync(src, dst);
       }
     }
@@ -570,72 +611,100 @@ function buildWorkflow(templateFile) {
   const md = generateSkillMd(name, parsed);
   fs.writeFileSync(path.join(skillOutDir, "SKILL.md"), md, "utf-8");
 
-  const actionNote = allDetails.size > 0 ? `, ${allDetails.size} details` : "";
-  console.log(
-    `  ${name} → skills/${name}/SKILL.md (${Object.keys(parsed.steps).length} steps${actionNote})`
-  );
+  return { name, stepCount: Object.keys(parsed.steps).length, detailCount: allDetails.size };
 }
 
-function buildAll() {
-  if (!fs.existsSync(TEMPLATE_DIR)) {
-    console.error(`template directory: ${TEMPLATE_DIR}`);
-    process.exit(1);
+// ── 스코프별 템플릿 수집 ──────────────────────────────────
+function collectTemplates() {
+  const seen = new Set();
+  const result = [];
+
+  for (const scope of SCOPES) {
+    const templateDir = path.join(scope.srcDir, "templates");
+    if (!fs.existsSync(templateDir)) continue;
+
+    const files = fs.readdirSync(templateDir).filter((f) => f.endsWith(".yaml") || f.endsWith(".yml"));
+    for (const file of files) {
+      if (seen.has(file)) continue;
+      seen.add(file);
+      result.push({ file: path.join(templateDir, file), scope });
+    }
   }
 
-  const files = fs
-    .readdirSync(TEMPLATE_DIR)
-    .filter((f) => f.endsWith(".yaml") || f.endsWith(".yml"));
+  return result;
+}
 
-  if (files.length === 0) {
+// ── 전체 빌드 ─────────────────────────────────────────────
+function buildAll() {
+  const templates = collectTemplates();
+
+  if (templates.length === 0) {
     console.log("No workflow templates.");
     return;
   }
 
-  console.log(`\nWorkflow build (${files.length})\n`);
+  console.log(`\n🔨 Workflow 빌드 시작 (${templates.length}개)\n`);
 
-  const index = loadBuildIndex();
-  const previouslyGenerated = new Set(index.generated);
-  const nowGenerated = new Set();
+  // 인덱스별로 이전 빌드물 추적
+  const indexFiles = [...new Set(SCOPES.map((s) => s.indexFile))];
+  const prevIndexes = {};
+  for (const f of indexFiles) {
+    prevIndexes[f] = loadBuildIndex(f);
+  }
+
+  const nowGenerated = {};
+  for (const f of indexFiles) {
+    nowGenerated[f] = new Set();
+  }
 
   let success = 0;
   let failed = 0;
 
-  for (const file of files) {
-    const name = path.basename(file, path.extname(file));
+  for (const { file, scope } of templates) {
+    const fileName = path.basename(file, path.extname(file));
     try {
-      buildWorkflow(path.join(TEMPLATE_DIR, file));
-      nowGenerated.add(name);
+      const { name, stepCount, detailCount } = buildWorkflow(file, scope.outputDir);
+      nowGenerated[scope.indexFile].add(name);
+      const detailNote = detailCount > 0 ? `, ${detailCount} details` : "";
+      console.log(`  ✓ [${scope.name}] ${name} (${stepCount} steps${detailNote})`);
       success++;
     } catch (err) {
-      console.error(`  ${file}: ${err.message}`);
+      console.error(`  ✗ [${scope.name}] ${fileName}: ${err.message}`);
       failed++;
     }
   }
 
-  // 인덱스에 있지만 현재 템플릿에 없는 스킬 디렉토리 삭제
+  // 삭제된 템플릿에 대응하는 스킬 디렉토리 정리 + 인덱스 갱신
   let removed = 0;
-  for (const name of previouslyGenerated) {
-    if (nowGenerated.has(name)) continue;
-    if (removeSkillDir(name)) {
-      console.log(`  removed: skills/${name}/`);
-      removed++;
+  for (const f of indexFiles) {
+    const prev = new Set(prevIndexes[f].generated);
+    const now = nowGenerated[f];
+    const scope = SCOPES.find((s) => s.indexFile === f);
+
+    for (const name of prev) {
+      if (now.has(name)) continue;
+      if (removeSkillDir(name, scope.outputDir)) {
+        console.log(`  ✗ removed: ${name}/`);
+        removed++;
+      }
     }
+
+    saveBuildIndex(f, { generated: [...now].sort() });
   }
 
-  saveBuildIndex({ generated: [...nowGenerated].sort() });
-
-  console.log(`\nDone: ${success} ok, ${failed} fail, ${removed} removed\n`);
+  console.log(`\n완료: ${success}개 성공, ${failed}개 실패, ${removed}개 삭제\n`);
 }
 
 // ── watch 모드 ────────────────────────────────────────────
 function watchMode() {
   buildAll();
-  console.log("Watching... (Ctrl+C)\n");
+  console.log("👀 파일 변경 감지 중... (Ctrl+C로 종료)\n");
 
-  if (fs.existsSync(TEMPLATE_DIR)) {
-    fs.watch(TEMPLATE_DIR, { recursive: true }, (_, filename) => {
-      if (filename?.endsWith(".yaml") || filename?.endsWith(".yml")) {
-        console.log(`\nChanged: ${filename}`);
+  for (const scope of SCOPES) {
+    if (!fs.existsSync(scope.srcDir)) continue;
+    fs.watch(scope.srcDir, { recursive: true }, (_, filename) => {
+      if (filename?.endsWith(".yaml") || filename?.endsWith(".yml") || filename?.endsWith(".md")) {
+        console.log(`\n변경 감지 [${scope.name}]: ${filename}`);
         buildAll();
       }
     });
@@ -644,22 +713,30 @@ function watchMode() {
 
 // ── clean 모드 ────────────────────────────────────────────
 function cleanOnly() {
-  const index = loadBuildIndex();
-  if (index.generated.length === 0) {
-    console.log("인덱스가 비어있습니다. 삭제할 파일 없음.");
-    return;
-  }
+  const indexFiles = [...new Set(SCOPES.map((s) => s.indexFile))];
+  let totalRemoved = 0;
 
-  let removed = 0;
-  for (const name of index.generated) {
-    if (removeSkillDir(name)) {
-      console.log(`  removed: skills/${name}/`);
-      removed++;
+  for (const f of indexFiles) {
+    const index = loadBuildIndex(f);
+    if (index.generated.length === 0) continue;
+
+    const scope = SCOPES.find((s) => s.indexFile === f);
+
+    for (const name of index.generated) {
+      if (removeSkillDir(name, scope.outputDir)) {
+        console.log(`  ✗ removed: ${name}/`);
+        totalRemoved++;
+      }
     }
+
+    saveBuildIndex(f, { generated: [] });
   }
 
-  saveBuildIndex({ generated: [] });
-  console.log(`\nDone: ${removed} removed\n`);
+  if (totalRemoved === 0) {
+    console.log("삭제할 파일 없음.");
+  } else {
+    console.log(`\n완료: ${totalRemoved}개 삭제\n`);
+  }
 }
 
 // ── 진입점 ────────────────────────────────────────────────

@@ -1,59 +1,82 @@
 #!/usr/bin/env node
 /**
- * Agent 빌드 스크립트
+ * Agent 빌드 스크립트 (3-tier scope chain)
  *
- * template의 뼈대 파일에서 XML 태그를 src/ 내용으로 치환하여
- * 완성된 agent를 agents/build/에 생성합니다.
+ * 3단계 스코프 체인으로 소스를 해석하여 agent를 빌드한다:
+ *   project (.claude/dynamic-builder/build-agent/src/)  ← 최우선
+ *   global  (~/.claude/dynamic-builder/build-agent/src/)
+ *   default (플러그인 내부 src/)
+ *
+ * 부품(perspectives, roles, principles)은 스코프 순서로 오버라이드.
+ * 템플릿은 스코프별로 수집하되, 상위 스코프가 같은 이름을 가리면 하위는 스킵.
+ * 빌드 출력 위치는 템플릿의 소스 스코프에 따라 결정:
+ *   project 템플릿 → {project}/.claude/agents/
+ *   global/default 템플릿 → ~/.claude/agents/
  *
  * 사용법:
  *   node build-agents.js
  *   node build-agents.js --watch
- *
- * 디렉토리 구조:
- *   skills/dynamic-agent-load/
- *     src/
- *       perspectives/*.md
- *       roles/*.md
- *       principles/*.md
- *     src/
- *       templates/
- *         domain-analyst.md
- *         usecase-analyst.md
- *     scripts/build-agents.js
- *   agents/
- *     domain-analyst.md        ← 빌드 결과물
+ *   node build-agents.js --clean
  */
 
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
+// ── 프로젝트 루트 탐색 ───────────────────────────────────────
+function findProjectRoot() {
+  const homeClaude = path.join(os.homedir(), ".claude");
+  let dir = process.cwd();
+  while (dir !== path.dirname(dir)) {
+    const candidate = path.join(dir, ".claude");
+    if (fs.existsSync(candidate) && candidate !== homeClaude) {
+      return dir;
+    }
+    dir = path.dirname(dir);
+  }
+  return null;
+}
+
 // ── 경로 설정 ──────────────────────────────────────────────
 const SKILL_DIR = path.resolve(__dirname, "..");
 const CLAUDE_DIR = path.join(os.homedir(), ".claude");
+const PROJECT_ROOT = findProjectRoot();
 
-const SRC_DIR = path.join(SKILL_DIR, "src");
-const TEMPLATE_DIR = path.join(SRC_DIR, "templates");
-
-const PERSPECTIVES_DIR = path.join(SRC_DIR, "perspectives");
-const ROLES_DIR = path.join(SRC_DIR, "roles");
-const PRINCIPLES_DIR = path.join(SRC_DIR, "principles");
-
-const BUILD_DIR = path.join(CLAUDE_DIR, "agents");
-const BUILD_INDEX_FILE = path.join(SKILL_DIR, ".build-index.local.json");
+// 스코프 정의 (읽기 + 쓰기)
+const SCOPES = [
+  PROJECT_ROOT && {
+    name: "project",
+    srcDir: path.join(PROJECT_ROOT, ".claude/dynamic-builder/build-agent/src"),
+    outputDir: path.join(PROJECT_ROOT, ".claude/agents"),
+    indexFile: path.join(PROJECT_ROOT, ".claude/dynamic-builder/build-agent/.build-index.local.json"),
+  },
+  {
+    name: "global",
+    srcDir: path.join(CLAUDE_DIR, "dynamic-builder/build-agent/src"),
+    outputDir: path.join(CLAUDE_DIR, "agents"),
+    indexFile: path.join(CLAUDE_DIR, "dynamic-builder/build-agent/.build-index.local.json"),
+  },
+  {
+    name: "default",
+    srcDir: path.join(SKILL_DIR, "src"),
+    outputDir: path.join(CLAUDE_DIR, "agents"),
+    indexFile: path.join(CLAUDE_DIR, "dynamic-builder/build-agent/.build-index.local.json"),
+  },
+].filter(Boolean);
 
 // ── 빌드 인덱스 ────────────────────────────────────────────
-function loadBuildIndex() {
-  if (!fs.existsSync(BUILD_INDEX_FILE)) return { generated: [] };
+function loadBuildIndex(indexFile) {
+  if (!fs.existsSync(indexFile)) return { generated: [] };
   try {
-    return JSON.parse(fs.readFileSync(BUILD_INDEX_FILE, "utf-8"));
+    return JSON.parse(fs.readFileSync(indexFile, "utf-8"));
   } catch {
     return { generated: [] };
   }
 }
 
-function saveBuildIndex(index) {
-  fs.writeFileSync(BUILD_INDEX_FILE, JSON.stringify(index, null, 2) + "\n", "utf-8");
+function saveBuildIndex(indexFile, index) {
+  fs.mkdirSync(path.dirname(indexFile), { recursive: true });
+  fs.writeFileSync(indexFile, JSON.stringify(index, null, 2) + "\n", "utf-8");
 }
 
 // ── 유틸 ──────────────────────────────────────────────────
@@ -86,12 +109,21 @@ function parseFrontmatter(content) {
   return { meta, body: match[2].trim() };
 }
 
+// ── 부품 해석: 스코프 체인으로 탐색 ──────────────────────────
+function resolveComponent(category, name) {
+  for (const scope of SCOPES) {
+    const filePath = path.join(scope.srcDir, category, `${name}.md`);
+    if (fs.existsSync(filePath)) return filePath;
+  }
+  throw new Error(`부품을 찾을 수 없습니다: ${category}/${name}.md`);
+}
+
 // ── XML 태그에 내용 주입 ───────────────────────────────────
 function injectTags(body) {
   body = body.replace(
     /<Perspective name="([^"]+)"><\/Perspective>/g,
     (_, name) => {
-      const content = readFile(path.join(PERSPECTIVES_DIR, `${name}.md`));
+      const content = readFile(resolveComponent("perspectives", name));
       return `<Perspective name="${name}">\n${content}\n</Perspective>`;
     }
   );
@@ -99,13 +131,13 @@ function injectTags(body) {
   body = body.replace(
     /<Principle name="([^"]+)"><\/Principle>/g,
     (_, name) => {
-      const content = readFile(path.join(PRINCIPLES_DIR, `${name}.md`));
+      const content = readFile(resolveComponent("principles", name));
       return `<Principle name="${name}">\n${content}\n</Principle>`;
     }
   );
 
   body = body.replace(/<Role name="([^"]+)"><\/Role>/g, (_, name) => {
-    const content = readFile(path.join(ROLES_DIR, `${name}.md`));
+    const content = readFile(resolveComponent("roles", name));
     return `<Role name="${name}">\n${content}\n</Role>`;
   });
 
@@ -118,12 +150,14 @@ const roleMetaCache = {};
 function getRoleMeta(roleName) {
   if (roleMetaCache[roleName]) return roleMetaCache[roleName];
 
-  const rolePath = path.join(ROLES_DIR, `${roleName}.md`);
-  if (!fs.existsSync(rolePath)) return {};
-
-  const { meta } = parseFrontmatter(readFile(rolePath));
-  roleMetaCache[roleName] = meta;
-  return meta;
+  try {
+    const rolePath = resolveComponent("roles", roleName);
+    const { meta } = parseFrontmatter(readFile(rolePath));
+    roleMetaCache[roleName] = meta;
+    return meta;
+  } catch {
+    return {};
+  }
 }
 
 function extractRoleName(body) {
@@ -132,16 +166,14 @@ function extractRoleName(body) {
 }
 
 // ── 핵심: 병합 (role default → template override) ─────────
-function buildAgent(templateFile) {
+function buildAgent(templateFile, outputDir) {
   const templateName = path.basename(templateFile, ".md");
   const templateContent = readFile(templateFile);
   const { meta: templateMeta, body } = parseFrontmatter(templateContent);
 
-  // Role의 default frontmatter를 가져온다
   const roleName = extractRoleName(body);
   const roleMeta = roleName ? getRoleMeta(roleName) : {};
 
-  // role default → template override 순서로 병합
   const merged = { ...roleMeta, ...templateMeta };
 
   const agentName = merged.name || templateName;
@@ -165,64 +197,95 @@ function buildAgent(templateFile) {
 
   const output = `---\n${lines.join("\n")}\n---\n${injectedBody}`.trim();
 
-  fs.mkdirSync(BUILD_DIR, { recursive: true });
+  fs.mkdirSync(outputDir, { recursive: true });
 
-  const outFile = path.join(BUILD_DIR, `${agentName}.md`);
+  const outFile = path.join(outputDir, `${agentName}.md`);
   fs.writeFileSync(outFile, output, "utf-8");
 
-  console.log(`✓ ${agentName} → agents/${agentName}.md`);
+  return agentName;
+}
+
+// ── 스코프별 템플릿 수집 ──────────────────────────────────
+function collectTemplates() {
+  const seen = new Set();
+  const result = []; // { file, scope }
+
+  for (const scope of SCOPES) {
+    const templateDir = path.join(scope.srcDir, "templates");
+    if (!fs.existsSync(templateDir)) continue;
+
+    const files = fs.readdirSync(templateDir).filter((f) => f.endsWith(".md"));
+    for (const file of files) {
+      if (seen.has(file)) continue; // 상위 스코프가 우선
+      seen.add(file);
+      result.push({ file: path.join(templateDir, file), scope });
+    }
+  }
+
+  return result;
 }
 
 // ── 전체 빌드 ─────────────────────────────────────────────
 function buildAll() {
-  if (!fs.existsSync(TEMPLATE_DIR)) {
-    console.error(`템플릿 디렉토리를 찾을 수 없습니다: ${TEMPLATE_DIR}`);
-    process.exit(1);
-  }
+  const templates = collectTemplates();
 
-  const files = fs
-    .readdirSync(TEMPLATE_DIR)
-    .filter((f) => f.endsWith(".md"));
-
-  if (files.length === 0) {
+  if (templates.length === 0) {
     console.log("빌드할 템플릿 파일이 없습니다.");
     return;
   }
 
-  console.log(`\n🔨 Agent 빌드 시작 (${files.length}개)\n`);
+  console.log(`\n🔨 Agent 빌드 시작 (${templates.length}개)\n`);
 
-  const index = loadBuildIndex();
-  const nowGenerated = new Set();
+  // 인덱스별로 이전 빌드물 추적
+  const indexFiles = [...new Set(SCOPES.map((s) => s.indexFile))];
+  const prevIndexes = {};
+  for (const f of indexFiles) {
+    prevIndexes[f] = loadBuildIndex(f);
+  }
+
+  // 스코프별 생성 결과 추적
+  const nowGenerated = {}; // indexFile → Set<filename>
+  for (const f of indexFiles) {
+    nowGenerated[f] = new Set();
+  }
 
   let success = 0;
   let failed = 0;
 
-  for (const file of files) {
+  for (const { file, scope } of templates) {
     const name = path.basename(file, ".md");
     try {
-      buildAgent(path.join(TEMPLATE_DIR, file));
-      nowGenerated.add(`${name}.md`);
+      const agentName = buildAgent(file, scope.outputDir);
+      nowGenerated[scope.indexFile].add(`${agentName}.md`);
+      console.log(`  ✓ [${scope.name}] ${agentName}`);
       success++;
     } catch (err) {
-      console.error(`✗ ${file}: ${err.message}`);
+      console.error(`  ✗ [${scope.name}] ${name}: ${err.message}`);
       failed++;
     }
   }
 
-  // 삭제된 템플릿에 대응하는 agent 파일 정리
-  const previouslyGenerated = new Set(index.generated);
+  // 삭제된 템플릿에 대응하는 파일 정리 + 인덱스 갱신
   let removed = 0;
-  for (const agentFile of previouslyGenerated) {
-    if (nowGenerated.has(agentFile)) continue;
-    const filePath = path.join(BUILD_DIR, agentFile);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-      console.log(`✗ removed: agents/${agentFile}`);
-      removed++;
-    }
-  }
+  for (const f of indexFiles) {
+    const prev = new Set(prevIndexes[f].generated);
+    const now = nowGenerated[f];
+    // 이 인덱스에 연결된 outputDir 찾기
+    const scope = SCOPES.find((s) => s.indexFile === f);
+    const outputDir = scope.outputDir;
 
-  saveBuildIndex({ generated: [...nowGenerated].sort() });
+    for (const agentFile of prev) {
+      if (now.has(agentFile)) continue;
+      const filePath = path.join(outputDir, agentFile);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        console.log(`  ✗ removed: ${agentFile}`);
+        removed++;
+      }
+    }
+
+    saveBuildIndex(f, { generated: [...now].sort() });
+  }
 
   console.log(`\n완료: ${success}개 성공, ${failed}개 실패, ${removed}개 삭제\n`);
 }
@@ -232,12 +295,11 @@ function watchMode() {
   buildAll();
   console.log("👀 파일 변경 감지 중... (Ctrl+C로 종료)\n");
 
-  const watchDirs = [TEMPLATE_DIR, SRC_DIR];
-  for (const dir of watchDirs) {
-    if (!fs.existsSync(dir)) continue;
-    fs.watch(dir, { recursive: true }, (_, filename) => {
+  for (const scope of SCOPES) {
+    if (!fs.existsSync(scope.srcDir)) continue;
+    fs.watch(scope.srcDir, { recursive: true }, (_, filename) => {
       if (filename?.endsWith(".md")) {
-        console.log(`\n변경 감지: ${filename}`);
+        console.log(`\n변경 감지 [${scope.name}]: ${filename}`);
         buildAll();
       }
     });
@@ -246,24 +308,33 @@ function watchMode() {
 
 // ── clean 모드 ────────────────────────────────────────────
 function cleanOnly() {
-  const index = loadBuildIndex();
-  if (index.generated.length === 0) {
-    console.log("인덱스가 비어있습니다. 삭제할 파일 없음.");
-    return;
-  }
+  const indexFiles = [...new Set(SCOPES.map((s) => s.indexFile))];
+  let totalRemoved = 0;
 
-  let removed = 0;
-  for (const agentFile of index.generated) {
-    const filePath = path.join(BUILD_DIR, agentFile);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-      console.log(`✗ removed: agents/${agentFile}`);
-      removed++;
+  for (const f of indexFiles) {
+    const index = loadBuildIndex(f);
+    if (index.generated.length === 0) continue;
+
+    const scope = SCOPES.find((s) => s.indexFile === f);
+    const outputDir = scope.outputDir;
+
+    for (const agentFile of index.generated) {
+      const filePath = path.join(outputDir, agentFile);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        console.log(`  ✗ removed: ${agentFile}`);
+        totalRemoved++;
+      }
     }
+
+    saveBuildIndex(f, { generated: [] });
   }
 
-  saveBuildIndex({ generated: [] });
-  console.log(`\n완료: ${removed}개 삭제\n`);
+  if (totalRemoved === 0) {
+    console.log("삭제할 파일 없음.");
+  } else {
+    console.log(`\n완료: ${totalRemoved}개 삭제\n`);
+  }
 }
 
 // ── 진입점 ────────────────────────────────────────────────
