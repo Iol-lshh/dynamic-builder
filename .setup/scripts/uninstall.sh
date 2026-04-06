@@ -82,7 +82,7 @@ fi
 # permissions에서 스크립트 허용 항목 제거
 SETTINGS="$CLAUDE_DIR/settings.json"
 if [[ -f "$SETTINGS" ]] && command -v jq &>/dev/null; then
-  jq '.permissions.allow = [.permissions.allow[] | select(startswith("Bash(bash .claude/scripts/") | not)]' "$SETTINGS" > "$SETTINGS.tmp" && mv "$SETTINGS.tmp" "$SETTINGS"
+  jq --arg prefix "Bash(bash ~/.claude/plugins/marketplaces/dynamic-builder/scripts/" '.permissions.allow = [.permissions.allow[] | select(startswith($prefix) | not)]' "$SETTINGS" > "$SETTINGS.tmp" && mv "$SETTINGS.tmp" "$SETTINGS"
   echo "[OK]   settings.json에서 스크립트 허용 항목 제거"
 fi
 

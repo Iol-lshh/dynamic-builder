@@ -10,9 +10,9 @@
       "MultiEdit",
       "Bash",
       "NotebookEdit",
-      "Bash(bash .claude/scripts/build-dynamic.sh*)",
-      "Bash(bash .claude/scripts/clean-dynamic.sh*)",
-      "Bash(bash .claude/scripts/clean-worktree.sh*)"
+      "Bash(bash ~/.claude/plugins/marketplaces/dynamic-builder/scripts/build-dynamic.sh*)",
+      "Bash(bash ~/.claude/plugins/marketplaces/dynamic-builder/scripts/clean-dynamic.sh*)",
+      "Bash(bash ~/.claude/plugins/marketplaces/dynamic-builder/scripts/clean-worktree.sh*)"
     ]
   },
   "hooks": {
@@ -32,7 +32,7 @@
         "hooks": [
           {
             "type": "command",
-            "if": "Bash(git:*)",
+            "if": "Bash(git *)",
             "command": "~/.claude/hooks/protect-branch-git.sh",
             "statusMessage": "워크트리 확인 중..."
           }
