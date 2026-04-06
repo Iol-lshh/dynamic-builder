@@ -91,10 +91,59 @@ function resolveDetail(name) {
   return null;
 }
 
+// ── input 섹션 파서 ────────────────────────────────────────
+function parseInputSection(content) {
+  const inputs = {};
+  const lines = content.split("\n");
+
+  let i = 0;
+  while (i < lines.length && lines[i].trim() !== "input:") i++;
+  if (i >= lines.length) return inputs;
+  i++;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.trim() === "" || line.trim().startsWith("#")) { i++; continue; }
+
+    const indent = line.search(/\S/);
+    if (indent === 0) break; // 다음 최상위 섹션
+
+    const trimmed = line.trim();
+
+    // 플래그 선언: "  flag-name:" 또는 "  flag-name: {}"
+    if (indent <= 2 && trimmed.endsWith(":")) {
+      const flagName = trimmed.slice(0, -1).trim();
+      const flag = { desc: "", default: "" };
+      inputs[flagName] = flag;
+      i++;
+
+      while (i < lines.length) {
+        const pLine = lines[i];
+        if (pLine.trim() === "" || pLine.trim().startsWith("#")) { i++; continue; }
+        const pIndent = pLine.search(/\S/);
+        if (pIndent <= indent) break;
+        const pTrimmed = pLine.trim();
+
+        if (pTrimmed.startsWith("desc:")) {
+          flag.desc = pTrimmed.slice(5).trim().replace(/^["']|["']$/g, "");
+        } else if (pTrimmed.startsWith("default:")) {
+          flag.default = pTrimmed.slice(8).trim().replace(/^["']|["']$/g, "");
+        }
+        i++;
+      }
+    } else {
+      i++;
+    }
+  }
+
+  return inputs;
+}
+
 // ── YAML 파싱 ──────────────────────────────────────────────
 function parseWorkflowYaml(filePath) {
   const content = fs.readFileSync(filePath, "utf-8");
   const steps = parseSteps(content);
+  const inputs = parseInputSection(content);
 
   // output-dir 파싱
   const outputDirMatch = content.match(/^output-dir:\s*(.+)$/m);
@@ -107,7 +156,7 @@ function parseWorkflowYaml(filePath) {
   // flow를 구조화된 배열로 파싱
   const flowItems = flowStart >= 0 ? parseFlowSection(flowContent) : [];
 
-  return { steps, flowItems, outputDir, raw: content };
+  return { steps, flowItems, inputs, outputDir, raw: content };
 }
 
 // ── define.steps 파서 ──────────────────────────────────────
@@ -376,6 +425,21 @@ function flowToMarkdown(items, steps, depth = 0, outputDir = ".local/$ARGUMENTS"
           lines.push(`${prefix}   - tool: \`${step.tool}\``);
           if (paramStr) lines.push(`${prefix}   - params: ${paramStr}`);
           lines.push(`${prefix}   - 실행: \`${step.tool}\` 도구를 직접 호출한다 (서브에이전트 불필요)`);
+        } else if (!step.agent) {
+          // agent 없음 → 오케스트레이터가 직접 수행
+          lines.push(`${prefix}${sequenceNum}. **[ORCHESTRATOR]** \`${item.name}\``);
+          lines.push(`${prefix}   - desc: ${step.desc}`);
+          lines.push(`${prefix}   - 실행: 오케스트레이터가 desc와 details를 기반으로 직접 수행한다 (서브에이전트 불필요)`);
+          if (step.details.length > 0) {
+            lines.push(
+              `${prefix}   - details (필수 준수): ${step.details.map((d) => `\`references/${d}\``).join(", ")}`
+            );
+          }
+          if (step.input.length > 0) {
+            lines.push(
+              `${prefix}   - input: ${step.input.map((s) => `\`${resolveInput(s, outputDir)}\``).join(", ")}`
+            );
+          }
         } else {
           const outputFile = resolveOutput(step.output, item.name, outputDir);
           lines.push(`${prefix}${sequenceNum}. **[STEP]** \`${item.name}\``);
@@ -478,12 +542,12 @@ function flowToMarkdown(items, steps, depth = 0, outputDir = ".local/$ARGUMENTS"
 
 // ── 스킬 Markdown 생성 ────────────────────────────────────
 function generateSkillMd(name, parsed) {
-  const { steps, flowItems, outputDir, raw } = parsed;
+  const { steps, flowItems, inputs, outputDir, raw } = parsed;
 
   const stepTable = Object.entries(steps)
     .map(([stepName, { agent, shell, tool, desc }]) => {
       const brief = desc.length > 60 ? desc.slice(0, 60) + "..." : desc;
-      const type = shell ? "[shell]" : tool ? `[tool: ${tool}]` : agent;
+      const type = shell ? "[shell]" : tool ? `[tool: ${tool}]` : agent || "[orchestrator]";
       return `| ${stepName} | ${type} | ${brief} |`;
     })
     .join("\n");
@@ -491,7 +555,7 @@ function generateSkillMd(name, parsed) {
   // 검증: 스코프 체인에서 details 탐색
   const warnings = [];
   for (const [stepName, { agent, shell, tool, refs, details }] of Object.entries(steps)) {
-    if (!shell && !tool && !fs.existsSync(path.join(AGENTS_BUILD_DIR, `${agent}.md`))) {
+    if (!shell && !tool && agent && !fs.existsSync(path.join(AGENTS_BUILD_DIR, `${agent}.md`))) {
       warnings.push(
         `- ${stepName}: agent \`${agent}\` not found in \`${AGENTS_BUILD_DIR}/\``
       );
@@ -520,6 +584,25 @@ function generateSkillMd(name, parsed) {
 
   const flowInstructions = flowToMarkdown(flowItems, steps, 0, outputDir);
 
+  // input 파라미터 섹션
+  const inputEntries = Object.entries(inputs);
+  const inputSection = inputEntries.length > 0
+    ? `## 입력 파라미터
+
+워크플로우 실행 시 \`$ARGUMENTS\`에서 다음 플래그를 파싱한다:
+
+| 플래그 | 설명 | 기본값 |
+|--------|------|--------|
+${inputEntries.map(([flag, { desc, default: def }]) => `| \`--${flag}\` | ${desc || "-"} | \`${def || ""}\` |`).join("\n")}
+
+인자 파싱 규칙:
+- \`--{flag} {value}\` 형태로 전달된 값을 추출한다
+- 플래그가 없으면 기본값을 사용한다
+- 플래그가 아닌 나머지 인자는 \`$ARGUMENTS\`로 사용한다
+
+`
+    : "";
+
   return `---
 name: ${name}
 description: Workflow: ${name}
@@ -529,7 +612,7 @@ description: Workflow: ${name}
 
 > 자동 생성된 스킬입니다. 직접 수정하지 마세요.
 ${warningSection}
-## 산출물 디렉토리
+${inputSection}## 산출물 디렉토리
 
 \`${outputDir}\`
 
@@ -554,6 +637,7 @@ ${flowInstructions}
   - details 파일들(\`references/\`)은 **반드시 준수해야 할 지침**이다. 에이전트 프롬프트에 포함하고 "이 details 파일의 지침을 반드시 따르라"고 명시한다
   - input step들의 산출물을 입력으로 전달
   - \`$STEP_NAME\`으로 step 이름을 전달하여 산출물 파일명을 결정
+- **[ORCHESTRATOR]**는 agent 없이 오케스트레이터가 desc와 details를 기반으로 직접 수행한다.
 - **[SHELL]**은 Bash 도구를 직접 호출한다. 서브에이전트 없이 오케스트레이터가 실행한다.
 - **[TOOL]**은 명시된 Claude 도구를 직접 호출한다. 서브에이전트 없이 오케스트레이터가 실행한다.
 - **[PARALLEL]**은 하나의 메시지에 여러 Agent 호출을 포함하여 동시 실행한다.

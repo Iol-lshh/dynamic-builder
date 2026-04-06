@@ -5,6 +5,11 @@
 ## 워크플로우 정의 구조
 
 ```yaml
+input:                           # optional, CLI 인자 선언
+  {flag-name}:
+    desc: {설명}                 # optional
+    default: {기본값}            # optional
+
 output-dir: .local/{작업 제목}  # optional, 기본값: .local/$ARGUMENTS
 
 define:
@@ -34,14 +39,41 @@ flow:
       flow: [...]
 ```
 
-## define 섹션
+## input 섹션
 
-step을 선언한다. step은 desc + agent 조합이다.
+워크플로우에 전달할 CLI 인자를 선언한다. 사용자는 `--{flag-name} {value}` 형태로 전달한다.
 
 | 필드 | 필수 | 설명 |
 |---|---|---|
-| desc | Y | agent에게 전달할 task 설명 |
-| agent | Y | 사용할 agent 이름 (`~/.claude/agents/` 아래) |
+| desc | N | 인자 설명 |
+| default | N | 기본값. 미지정 시 빈 문자열 |
+
+```yaml
+input:
+  scope:
+    desc: "배치 대상 스코프"
+    default: "closest"
+  format:
+    desc: "출력 포맷"
+```
+
+실행 시 인자 전달:
+```
+/workflow-name 작업제목 --scope project --format json
+```
+
+- `$ARGUMENTS`에서 `--{flag}` 다음 값을 추출한다
+- 플래그가 없으면 `default` 값을 사용한다
+- `input`에 선언되지 않은 나머지 인자는 기존대로 `$ARGUMENTS`로 전달된다
+
+## define 섹션
+
+step을 선언한다. step은 desc + agent 조합이다. agent를 생략하면 오케스트레이터가 직접 처리한다.
+
+| 필드 | 필수 | 설명 |
+|---|---|---|
+| desc | Y | task 설명. |
+| agent | N | 사용할 agent 이름 (`~/.claude/agents/` 아래). 생략 시 오케스트레이터가 직접 수행 |
 | details | N | step 실행 시점에 로드하는 지침 파일 목록 (`src/detailss/` 아래, 빌드 시 `references/`로 복사). 워크플로우 전체가 아닌 해당 step에서만 컨텍스트에 포함되며, 에이전트는 이 파일의 지침을 반드시 준수한다 |
 | refs | N | agent가 참조할 파일 목록. 베이스명 → `~/.claude/references/`, `/` 또는 `./` 시작 → 경로로 해석 |
 | input | N | 이전 step 이름 또는 파일 경로. step 이름 → `{output-dir}/{name}.md`, 경로 → 그대로 사용 |
