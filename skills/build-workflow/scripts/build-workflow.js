@@ -142,6 +142,7 @@ function parseInputSection(content) {
 // ── YAML 파싱 ──────────────────────────────────────────────
 function parseWorkflowYaml(filePath) {
   const content = fs.readFileSync(filePath, "utf-8");
+  const agents = parseAgentsSection(content);
   const steps = parseSteps(content);
   const inputs = parseInputSection(content);
 
@@ -156,7 +157,54 @@ function parseWorkflowYaml(filePath) {
   // flow를 구조화된 배열로 파싱
   const flowItems = flowStart >= 0 ? parseFlowSection(flowContent) : [];
 
-  return { steps, flowItems, inputs, outputDir, raw: content };
+  return { agents, steps, flowItems, inputs, outputDir, raw: content };
+}
+
+// ── define.agents 파서 ────────────────────────────────────
+function parseAgentsSection(content) {
+  const agents = {};
+  const lines = content.split("\n");
+
+  let i = 0;
+  while (i < lines.length && lines[i].trim() !== "define:") i++;
+  if (i >= lines.length) return agents;
+  i++;
+
+  // define: 내부에서 agents: 탐색
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.trim() === "" || line.trim().startsWith("#")) { i++; continue; }
+    const indent = line.search(/\S/);
+    if (indent === 0) break; // 다음 최상위 섹션
+    if (line.trim() === "agents:") {
+      i++;
+      // agents: 내부의 `- {alias}: {agent-name}` 파싱
+      while (i < lines.length) {
+        const aLine = lines[i];
+        if (aLine.trim() === "" || aLine.trim().startsWith("#")) { i++; continue; }
+        const aIndent = aLine.search(/\S/);
+        if (aIndent <= indent) break; // agents 블록 종료
+        const aTrimmed = aLine.trim();
+        if (aTrimmed.startsWith("- ") && aTrimmed.includes(":")) {
+          const inner = aTrimmed.slice(2).trim();
+          const colonIdx = inner.indexOf(":");
+          if (colonIdx > 0) {
+            const alias = inner.slice(0, colonIdx).trim();
+            const agentName = inner.slice(colonIdx + 1).trim();
+            if (alias && agentName) {
+              agents[alias] = agentName;
+            }
+          }
+        }
+        i++;
+      }
+      break;
+    }
+    if (line.trim() === "steps:") break; // agents가 없이 steps에 도달
+    i++;
+  }
+
+  return agents;
 }
 
 // ── define.steps 파서 ──────────────────────────────────────
@@ -397,7 +445,7 @@ function resolveOutput(output, stepName, outputDir) {
 }
 
 // ── flow를 실행 가능한 Markdown 지시문으로 변환 ─────────────
-function flowToMarkdown(items, steps, depth = 0, outputDir = ".local/$ARGUMENTS") {
+function flowToMarkdown(items, steps, depth = 0, outputDir = ".local/$ARGUMENTS", registeredAgents = {}) {
   const lines = [];
   let sequenceNum = 1;
 
@@ -442,11 +490,21 @@ function flowToMarkdown(items, steps, depth = 0, outputDir = ".local/$ARGUMENTS"
           }
         } else {
           const outputFile = resolveOutput(step.output, item.name, outputDir);
-          lines.push(`${prefix}${sequenceNum}. **[STEP]** \`${item.name}\``);
+          const isReuse = !!registeredAgents[step.agent];
+          const resolvedAgent = registeredAgents[step.agent] || step.agent;
+          const marker = isReuse ? "[STEP:REUSE]" : "[STEP]";
+
+          lines.push(`${prefix}${sequenceNum}. **${marker}** \`${item.name}\``);
           lines.push(`${prefix}   - desc: ${step.desc}`);
-          lines.push(
-            `${prefix}   - agent: \`${step.agent}\` → Agent 도구의 subagent_type`
-          );
+          if (isReuse) {
+            lines.push(
+              `${prefix}   - agent: \`${step.agent}\` (별칭 → \`${resolvedAgent}\`)`
+            );
+          } else {
+            lines.push(
+              `${prefix}   - agent: \`${step.agent}\` → Agent 도구의 subagent_type`
+            );
+          }
           if (step.details.length > 0) {
             lines.push(
               `${prefix}   - details (필수 준수): ${step.details.map((d) => `\`references/${d}\``).join(", ")} — 에이전트는 이 파일에 정의된 지침을 반드시 따른다`
@@ -490,7 +548,7 @@ function flowToMarkdown(items, steps, depth = 0, outputDir = ".local/$ARGUMENTS"
             }
           } else if (child.type === "flow") {
             lines.push(`${prefix}   - (순차 흐름):`);
-            const subLines = flowToMarkdown(child.items, steps, depth + 2, outputDir);
+            const subLines = flowToMarkdown(child.items, steps, depth + 2, outputDir, registeredAgents);
             lines.push(subLines);
           }
         }
@@ -503,7 +561,7 @@ function flowToMarkdown(items, steps, depth = 0, outputDir = ".local/$ARGUMENTS"
           `${prefix}${sequenceNum}. **[RETRY]** 조건: \`${item.condition}\`, 최대: ${item.max}회`
         );
         lines.push(`${prefix}   반복 내부 흐름:`);
-        const retryLines = flowToMarkdown(item.flow, steps, depth + 2, outputDir);
+        const retryLines = flowToMarkdown(item.flow, steps, depth + 2, outputDir, registeredAgents);
         lines.push(retryLines);
         lines.push(
           `${prefix}   → 내부 흐름 실행 후 조건(\`${item.condition}\`)을 평가한다. true이면 반복, false이면 다음으로 진행. 최대 ${item.max}회.`
@@ -517,7 +575,7 @@ function flowToMarkdown(items, steps, depth = 0, outputDir = ".local/$ARGUMENTS"
           `${prefix}${sequenceNum}. **[IF]** 조건: \`${item.condition}\``
         );
         lines.push(`${prefix}   조건이 true일 때 실행:`);
-        const ifLines = flowToMarkdown(item.flow, steps, depth + 2, outputDir);
+        const ifLines = flowToMarkdown(item.flow, steps, depth + 2, outputDir, registeredAgents);
         lines.push(ifLines);
         sequenceNum++;
         break;
@@ -542,12 +600,17 @@ function flowToMarkdown(items, steps, depth = 0, outputDir = ".local/$ARGUMENTS"
 
 // ── 스킬 Markdown 생성 ────────────────────────────────────
 function generateSkillMd(name, parsed) {
-  const { steps, flowItems, inputs, outputDir, raw } = parsed;
+  const { agents, steps, flowItems, inputs, outputDir, raw } = parsed;
 
   const stepTable = Object.entries(steps)
     .map(([stepName, { agent, shell, tool, desc }]) => {
       const brief = desc.length > 60 ? desc.slice(0, 60) + "..." : desc;
-      const type = shell ? "[shell]" : tool ? `[tool: ${tool}]` : agent || "[orchestrator]";
+      let type;
+      if (shell) type = "[shell]";
+      else if (tool) type = `[tool: ${tool}]`;
+      else if (!agent) type = "[orchestrator]";
+      else if (agents[agent]) type = `${agent} → ${agents[agent]}`;
+      else type = agent;
       return `| ${stepName} | ${type} | ${brief} |`;
     })
     .join("\n");
@@ -555,9 +618,10 @@ function generateSkillMd(name, parsed) {
   // 검증: 스코프 체인에서 details 탐색
   const warnings = [];
   for (const [stepName, { agent, shell, tool, refs, details }] of Object.entries(steps)) {
-    if (!shell && !tool && agent && !fs.existsSync(path.join(AGENTS_BUILD_DIR, `${agent}.md`))) {
+    const resolvedAgent = agents[agent] || agent;
+    if (!shell && !tool && agent && !fs.existsSync(path.join(AGENTS_BUILD_DIR, `${resolvedAgent}.md`))) {
       warnings.push(
-        `- ${stepName}: agent \`${agent}\` not found in \`${AGENTS_BUILD_DIR}/\``
+        `- ${stepName}: agent \`${resolvedAgent}\` not found in \`${AGENTS_BUILD_DIR}/\``
       );
     }
     for (const ref of refs) {
@@ -582,7 +646,7 @@ function generateSkillMd(name, parsed) {
       ? `\n> **검증 경고:**\n${warnings.map((w) => `> ${w}`).join("\n")}\n`
       : "";
 
-  const flowInstructions = flowToMarkdown(flowItems, steps, 0, outputDir);
+  const flowInstructions = flowToMarkdown(flowItems, steps, 0, outputDir, agents);
 
   // input 파라미터 섹션
   const inputEntries = Object.entries(inputs);
@@ -603,6 +667,34 @@ ${inputEntries.map(([flag, { desc, default: def }]) => `| \`--${flag}\` | ${desc
 `
     : "";
 
+  // 재활용 에이전트 테이블
+  const agentEntries = Object.entries(agents);
+  let agentsSection = "";
+  if (agentEntries.length > 0) {
+    // 각 별칭이 어떤 스텝에서 사용되는지 수집
+    const aliasUsage = {};
+    for (const [alias] of agentEntries) aliasUsage[alias] = [];
+    for (const [stepName, { agent }] of Object.entries(steps)) {
+      if (agents[agent]) aliasUsage[agent].push(stepName);
+    }
+    const agentRows = agentEntries
+      .map(([alias, agentName]) => `| ${alias} | ${agentName} | ${aliasUsage[alias].join(", ") || "-"} |`)
+      .join("\n");
+    agentsSection = `## 재활용 에이전트
+
+| 별칭 | 베이스 에이전트 | 사용 스텝 |
+|------|----------------|----------|
+${agentRows}
+
+`;
+  }
+
+  // [STEP:REUSE] 규칙
+  const reuseRule = agentEntries.length > 0
+    ? `- **[STEP:REUSE]**는 \`define.agents\`에 등록된 별칭 에이전트다. 동일 별칭의 첫 호출 시 Agent 도구로 생성하고, 이후 호출은 SendMessage로 기존 에이전트에 전달하여 컨텍스트를 유지한다. 별칭별로 에이전트 ID를 추적한다.
+`
+    : "";
+
   return `---
 name: ${name}
 description: Workflow: ${name}
@@ -616,7 +708,7 @@ ${inputSection}## 산출물 디렉토리
 
 \`${outputDir}\`
 
-## Steps
+${agentsSection}## Steps
 
 | Step | Agent | Description |
 |------|-------|-------------|
@@ -637,7 +729,7 @@ ${flowInstructions}
   - details 파일들(\`references/\`)은 **반드시 준수해야 할 지침**이다. 에이전트 프롬프트에 포함하고 "이 details 파일의 지침을 반드시 따르라"고 명시한다
   - input step들의 산출물을 입력으로 전달
   - \`$STEP_NAME\`으로 step 이름을 전달하여 산출물 파일명을 결정
-- **[ORCHESTRATOR]**는 agent 없이 오케스트레이터가 desc와 details를 기반으로 직접 수행한다.
+${reuseRule}- **[ORCHESTRATOR]**는 agent 없이 오케스트레이터가 desc와 details를 기반으로 직접 수행한다.
 - **[SHELL]**은 Bash 도구를 직접 호출한다. 서브에이전트 없이 오케스트레이터가 실행한다.
 - **[TOOL]**은 명시된 Claude 도구를 직접 호출한다. 서브에이전트 없이 오케스트레이터가 실행한다.
 - **[PARALLEL]**은 하나의 메시지에 여러 Agent 호출을 포함하여 동시 실행한다.

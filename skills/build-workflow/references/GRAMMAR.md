@@ -13,10 +13,12 @@ input:                           # optional, CLI 인자 선언
 output-dir: .local/{작업 제목}  # optional, 기본값: .local/$ARGUMENTS
 
 define:
+  agents:                          # optional, 재활용 에이전트 등록
+    - {alias}: {agent-name}
   steps:
     - {step-name}:
         desc: {task description}
-        agent: {agent-name}    # agents/ 에서 로드
+        agent: {agent-name}    # agents/ 에서 로드, 또는 define.agents의 별칭
         details:                # optional, src/detailss/ 기준 (워크플로우 로컬)
           - {details-file-path}
         refs:                  # optional, ~/.claude/references/ 기준 (글로벌)
@@ -68,12 +70,36 @@ input:
 
 ## define 섹션
 
+### agents (에이전트 등록)
+
+재활용할 에이전트를 별칭으로 등록한다. 등록된 별칭을 step의 `agent:`에 사용하면 첫 호출 시 Agent 도구로 생성하고, 이후 동일 별칭의 스텝은 SendMessage로 기존 에이전트에 전달한다. `define.agents`에 없는 이름은 상수로 취급하여 매번 신규 Agent를 생성한다.
+
+```yaml
+define:
+  agents:
+    - wf-core: workflow-design-planner
+    - ag-core: agent-composition-planner
+
+  steps:
+    - wf-plan:
+        agent: wf-core            # 등록 별칭 → SendMessage 재활용
+    - wf-advise:
+        agent: tradeoff-advisor   # 미등록 → 매번 신규 Agent
+```
+
+| 필드 | 필수 | 설명 |
+|---|---|---|
+| 별칭 | Y | 워크플로우 내에서 사용할 에이전트 식별자 |
+| 에이전트명 | Y | `~/.claude/agents/` 아래의 실제 에이전트 파일명 |
+
+### steps (스텝 선언)
+
 step을 선언한다. step은 desc + agent 조합이다. agent를 생략하면 오케스트레이터가 직접 처리한다.
 
 | 필드 | 필수 | 설명 |
 |---|---|---|
 | desc | Y | task 설명. |
-| agent | N | 사용할 agent 이름 (`~/.claude/agents/` 아래). 생략 시 오케스트레이터가 직접 수행 |
+| agent | N | 사용할 agent 이름 (`~/.claude/agents/` 아래) 또는 `define.agents`의 별칭. 생략 시 오케스트레이터가 직접 수행 |
 | details | N | step 실행 시점에 로드하는 지침 파일 목록 (`src/detailss/` 아래, 빌드 시 `references/`로 복사). 워크플로우 전체가 아닌 해당 step에서만 컨텍스트에 포함되며, 에이전트는 이 파일의 지침을 반드시 준수한다 |
 | refs | N | agent가 참조할 파일 목록. 베이스명 → `~/.claude/references/`, `/` 또는 `./` 시작 → 경로로 해석 |
 | input | N | 이전 step 이름 또는 파일 경로. step 이름 → `{output-dir}/{name}.md`, 경로 → 그대로 사용 |
