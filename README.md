@@ -228,7 +228,7 @@ flow:
 | `code-review-workflow` | 코드 리뷰 프로세스                           |
 | `report-workflow` | 문서 생성 워크플로우                          |
 | `essay-analysis-workflow` | 에세이 다관점 분석                           |
-| `nonfiction-writing-workflow` | 논픽션 글쓰기 워크플로우                        |
+| `essay-writing-workflow` | 논픽션 글쓰기 워크플로우                        |
 | `create-workflow-blueprint` | **워크플로우 템플릿 생성**                     |
 
 **새 workflow 추가 (플러그인 수정 없이)**
