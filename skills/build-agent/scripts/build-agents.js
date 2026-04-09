@@ -162,6 +162,57 @@ function injectTags(body) {
   return body;
 }
 
+// ── 빌드 결과물 순서 역전 (캐싱 최적화) ──────────────────────
+function reorderForCaching(body) {
+  // <Agent> 블록 내부에서 Perspective, Role, Principle 태그를 추출하여
+  // Principles → Perspective → Role 순서로 재배치한다.
+  // <Agent> 바깥의 추가 콘텐츠(예: 실행 절차)는 그대로 유지한다.
+
+  const agentMatch = body.match(/<Agent>([\s\S]*?)<\/Agent>/);
+  if (!agentMatch) return body;
+
+  const agentInner = agentMatch[1];
+  const afterAgent = body.substring(agentMatch.index + agentMatch[0].length).trim();
+
+  // Perspective 추출
+  const perspMatch = agentInner.match(/(\s*<Perspective name="[^"]+">[\s\S]*?<\/Perspective>)/);
+  const perspBlock = perspMatch ? perspMatch[1] : "";
+
+  // Role 추출
+  const roleMatch = agentInner.match(/(\s*<Role name="[^"]+">[\s\S]*?<\/Role>)/);
+  const roleBlock = roleMatch ? roleMatch[1] : "";
+
+  // Principle 블록들 추출 (개별 태그)
+  const principleBlocks = [];
+  const principleRegex = /\s*<Principle name="[^"]+">[\s\S]*?<\/Principle>/g;
+
+  // <Principles> wrapper가 있으면 그 안에서 추출
+  const principlesWrapperMatch = agentInner.match(/<Principles>([\s\S]*?)<\/Principles>/);
+  const searchIn = principlesWrapperMatch ? principlesWrapperMatch[1] : agentInner;
+
+  let m;
+  while ((m = principleRegex.exec(searchIn)) !== null) {
+    principleBlocks.push(m[0]);
+  }
+
+  // 재조립: Principles → Perspective → Role
+  let newInner = "";
+  if (principleBlocks.length > 0) {
+    newInner += "\n  <Principles>";
+    for (const p of principleBlocks) {
+      newInner += "\n  " + p.trim();
+    }
+    newInner += "\n  </Principles>";
+  }
+  if (perspBlock) newInner += "\n" + perspBlock;
+  if (roleBlock) newInner += "\n" + roleBlock;
+
+  let result = `<Agent>${newInner}\n</Agent>`;
+  if (afterAgent) result += "\n\n" + afterAgent;
+
+  return result;
+}
+
 // ── Role frontmatter 캐시 ─────────────────────────────────
 const roleMetaCache = {};
 
@@ -213,7 +264,10 @@ function buildAgent(templateFile, outputDir) {
 
   const injectedBody = injectTags(body);
 
-  const output = `${injectedBody}\n---\n${lines.join("\n")}\n---`.trim();
+  // 빌드 결과물 순서 역전: Principles → Perspective → Role (캐싱 최적화)
+  const reorderedBody = reorderForCaching(injectedBody);
+
+  const output = `${reorderedBody}\n---\n${lines.join("\n")}\n---`.trim();
 
   fs.mkdirSync(outputDir, { recursive: true });
 
