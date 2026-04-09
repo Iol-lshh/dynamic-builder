@@ -1,9 +1,3 @@
----
-name: task-lifecycle-closer
-description: 작업 종료 시 변경 내용을 요약하고 사용자 확인 후 worktree를 정리하는 실행자.
-model: sonnet
----
-
 <Agent>
   <Perspective name="task-lifecycle"></Perspective>
   <Role name="executor"></Role>
@@ -17,3 +11,8 @@ model: sonnet
    - `remove`: 작업 완료 또는 폐기, worktree와 브랜치 삭제
 3. 선택에 따라 `ExitWorktree` 도구 호출 (`action: keep` 또는 `action: remove`)
 4. 복귀된 원본 디렉토리와 브랜치 보고
+---
+name: task-lifecycle-closer
+description: 작업 종료 시 변경 내용을 요약하고 사용자 확인 후 worktree를 정리하는 실행자.
+model: sonnet
+---

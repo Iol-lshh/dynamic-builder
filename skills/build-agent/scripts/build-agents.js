@@ -87,12 +87,9 @@ function readFile(filePath) {
   return fs.readFileSync(filePath, "utf-8").trim();
 }
 
-function parseFrontmatter(content) {
-  const match = content.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
-  if (!match) return { meta: {}, body: content };
-
+function parseFrontmatterBlock(raw) {
   const meta = {};
-  for (const line of match[1].split("\n")) {
+  for (const line of raw.split("\n")) {
     const [key, ...rest] = line.split(":");
     if (key && rest.length) {
       const value = rest.join(":").trim();
@@ -106,7 +103,21 @@ function parseFrontmatter(content) {
       }
     }
   }
-  return { meta, body: match[2].trim() };
+  return meta;
+}
+
+function parseFrontmatter(content) {
+  // 상단 frontmatter
+  const topMatch = content.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  if (topMatch) {
+    return { meta: parseFrontmatterBlock(topMatch[1]), body: topMatch[2].trim() };
+  }
+  // 하단 frontmatter
+  const bottomMatch = content.match(/^([\s\S]*?)\n---\n([\s\S]*?)\n---\s*$/);
+  if (bottomMatch) {
+    return { meta: parseFrontmatterBlock(bottomMatch[2]), body: bottomMatch[1].trim() };
+  }
+  return { meta: {}, body: content };
 }
 
 // ── 부품 해석: 스코프 체인으로 탐색 ──────────────────────────
@@ -118,12 +129,19 @@ function resolveComponent(category, name) {
   throw new Error(`부품을 찾을 수 없습니다: ${category}/${name}.md`);
 }
 
+// ── 부품 내용 읽기 (frontmatter 제거) ────────────────────────
+function readComponentBody(category, name) {
+  const content = readFile(resolveComponent(category, name));
+  const { body } = parseFrontmatter(content);
+  return body;
+}
+
 // ── XML 태그에 내용 주입 ───────────────────────────────────
 function injectTags(body) {
   body = body.replace(
     /<Perspective name="([^"]+)"><\/Perspective>/g,
     (_, name) => {
-      const content = readFile(resolveComponent("perspectives", name));
+      const content = readComponentBody("perspectives", name);
       return `<Perspective name="${name}">\n${content}\n</Perspective>`;
     }
   );
@@ -131,13 +149,13 @@ function injectTags(body) {
   body = body.replace(
     /<Principle name="([^"]+)"><\/Principle>/g,
     (_, name) => {
-      const content = readFile(resolveComponent("principles", name));
+      const content = readComponentBody("principles", name);
       return `<Principle name="${name}">\n${content}\n</Principle>`;
     }
   );
 
   body = body.replace(/<Role name="([^"]+)"><\/Role>/g, (_, name) => {
-    const content = readFile(resolveComponent("roles", name));
+    const content = readComponentBody("roles", name);
     return `<Role name="${name}">\n${content}\n</Role>`;
   });
 
@@ -195,7 +213,7 @@ function buildAgent(templateFile, outputDir) {
 
   const injectedBody = injectTags(body);
 
-  const output = `---\n${lines.join("\n")}\n---\n${injectedBody}`.trim();
+  const output = `${injectedBody}\n---\n${lines.join("\n")}\n---`.trim();
 
   fs.mkdirSync(outputDir, { recursive: true });
 
