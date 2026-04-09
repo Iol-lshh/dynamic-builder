@@ -16,8 +16,8 @@ disallowedTools: [Edit]    # role에 따라 조정
   <Principle name="evidence-first"></Principle>
   <Principle name="output-discipline"></Principle>
   <Principle name="scope-containment"></Principle>
-  <Principle name="escalation-awareness"></Principle>
   <Principle name="context-budget-awareness"></Principle>
+  <Principle name="escalation-awareness"></Principle>
 </Agent>
 ```
 
