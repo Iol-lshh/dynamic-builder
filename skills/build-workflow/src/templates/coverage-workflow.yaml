@@ -24,6 +24,12 @@ define:
           - coverage-synthesis
         agent: scope-reduction-reconciler
 
+    - coverage-analyze-review:
+        desc: "분석 결과 회고의 품질을 평가하고 개선 방향을 제시한다"
+        input:
+          - coverage-retrospect
+        agent: code-level-evaluator
+
     - coverage-plan:
         desc: "커버리지 테스트 작성 계획을 수립한다"
         input:
@@ -36,13 +42,6 @@ define:
           - coverage-retrospect
           - coverage-plan
         agent: usecase-validator
-
-    - coverage-plan-review:
-        desc: "검증 통과된 테스트 계획의 품질을 채점하고 개선 방향을 제시한다"
-        input:
-          - coverage-retrospect
-          - coverage-plan
-        agent: usecase-evaluator
 
     - coverage-test:
         desc: "컨디션 커버리지 테스트를 작성한다"
@@ -61,7 +60,7 @@ define:
           - coverage-test
         agent: code-level-validator
     - coverage-review:
-        desc: "검증 통과된 테스트의 품질을 채점하고 개선 방향을 제시한다"
+        desc: "통과된 테스트의 품질을 채점하고 개선 방향을 제시한다"
         details:
           - condition-coverage-guide.md
         input:
@@ -74,20 +73,25 @@ flow:
     - coverage-analyze-A
     - coverage-analyze-B
   - coverage-synthesis
-  - coverage-retrospect
   - retry:
-      condition: validate fail || score < 80
+      condition: score < 80
+      max: 2
+      flow:
+        - coverage-retrospect
+        - coverage-analyze-review
+  - retry:
+      condition: validate fail
       max: 2
       flow:
         - coverage-plan
         - coverage-plan-validate
-        - coverage-plan-review
   - hitl
   - retry:
       condition: validate fail || score < 80
       max: 2
       flow:
         - coverage-test
-        - coverage-validate
-        - coverage-review
+        - parallel:
+          - coverage-validate
+          - coverage-review
   - hitl
