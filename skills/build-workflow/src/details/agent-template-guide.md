@@ -29,7 +29,6 @@ disallowedTools: [Edit]    # role에 따라 조정
 | planner | 실행 계획 수립 | [Edit] |
 | validator | 규칙 준수 검증 (합격/불합격) | [Edit] |
 | evaluator | 품질 채점 및 개선 방향 제시 | [Edit] |
-| advisor | 전략적 조언 | [Edit] |
 | reconciler | 복수 산출물 통합 | [Edit] |
 | builder | 파일 생성/수정 | - (쓰기 필요) |
 | executor | 명세 기반 실행 | - |
@@ -52,8 +51,9 @@ disallowedTools: [Edit]    # role에 따라 조정
 | dba | DB 건강성·인덱싱 |
 | git-history | 코드 진화·변경 영향 |
 | security-driven | 위협 모델·취약점 |
-| constraint-bypass | 우회·창의적 해법 |
 | scope-reduction | 최소 범위 접근 |
+| essay-writing | 논픽션 글쓰기·독자·톤·구조 |
+| essay-synthesis | 에세이 분석 통합·스코어 |
 | task-lifecycle | 작업 시작/완료 |
 | workflow-design | 워크플로우 구조·제어 흐름 |
 | agent-composition | 에이전트 구성·컴포넌트 조합 |
