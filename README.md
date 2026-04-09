@@ -123,14 +123,13 @@ dynamic-builder/
 
 **현재 정의된 Perspective**
 
-`agent-composition` · `api-design` · `application-level` · `apriorist` · `code-level` · `constraint-bypass` · `container-level` · `data-driven` · `dba` · `deconstructionist` · `domain-driven-design` · `empiricist` · `essay-synthesis` · `git-history` · `infra-level` · `nonfiction-writing` · `scope-reduction` · `security-driven` · `task-lifecycle` · `technical-tradeoff` · `test-design` · `ui-ux-design` · `usecase-design` · `workflow-design`
+`agent-composition` · `api-design` · `application-level` · `apriorist` · `code-level` · `container-level` · `data-driven` · `dba` · `deconstructionist` · `domain-driven-design` · `empiricist` · `essay-synthesis` · `essay-writing` · `git-history` · `infra-level` · `scope-reduction` · `security-driven` · `task-lifecycle` · `technical-tradeoff` · `test-design` · `ui-ux-design` · `usecase-design` · `workflow-design`
 
 **현재 정의된 Role**
 
 | Role | 설명 |
 |---|---|
 | `analyst` | 읽기 전용 분석, 보고서 생성 |
-| `advisor` | 트레이드오프 조언 |
 | `builder` | 명세 기반 최소 구현 |
 | `evaluator` | 산출물 품질 채점, 피드백 |
 | `executor` | 직접 실행 (Bash, 도구 호출) |
