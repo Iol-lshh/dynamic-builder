@@ -99,7 +99,7 @@ flow:
   - hitl
   # Phase 3: 테스트 작성 (TDD Red)
   - retry:
-      condition: validate success && score < 80
+      condition: validate false || score < 80
       max: 2
       flow:
         - tdd-test
@@ -108,7 +108,7 @@ flow:
   - hitl
   # Phase 4: 코드 작성 (TDD Green)
   - retry:
-      condition: validate success && score < 80
+      condition: validate false || score < 80
       max: 2
       flow:
         - tdd-implement

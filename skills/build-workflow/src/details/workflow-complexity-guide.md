@@ -52,17 +52,15 @@ execute → hitl
 **패턴:**
 ```yaml
 flow:
+  - parallel:
+    - analyze-A
+    - analyze-B
+  - synthesize
   - retry:
       condition: score < 80
-      max: 3
+      max: 2
       flow:
-        - parallel:
-            - analyze-A
-            - analyze-B
-        - synthesize
-        - advise-X
-        - advise-Y
-        - advise-Z
+        - retrospect
         - review
   - hitl
 ```
@@ -70,10 +68,9 @@ flow:
 **특징:**
 - 스텝 5~8개
 - 병렬 분석 2~3개
-- reconciler로 통합
-- 조언 2~3개 (tradeoff / constraint-bypass / scope-reduction)
-- evaluator로 품질 게이트
-- retry 1회 (분석 루프)
+- retrospect 통합 및 회고, 병렬 분석 결과 입력 (retry시 리뷰 결과 추가)
+- review 품질 게이트, 회고 결과 입력
+- retry 2회 (회고 루프)
 - HITL 1개
 
 **적합한 작업 예시:**
@@ -84,12 +81,12 @@ flow:
 
 **스텝 구성:**
 ```
-parallel((analyst → advisor_A → advisor_B → advisor_C) × N) → reconciler → evaluator → hitl
+parallel{analyst × N} -> reconciler → retry{reconciler → evaluator} → hitl
 ```
 
 ---
 
-## Tier 3 — 병렬 분석 → 통합 → 평가 → 계획 → 계획 검증 → 계획 평가 → 구현 → 구현 검증 → 구현 평가
+## Tier 3 — 병렬 분석 → 통합 → 평가 → 계획 → 계획 검증 → 구현 → 구현 검증 → 구현 평가
 
 **언제:** 분석부터 파일 생성까지 전체 라이프사이클을 커버하는 작업. 설계와 구현이 모두 필요하고, 각 단계에서 품질 게이트를 거쳐야 한다.
 
@@ -97,52 +94,46 @@ parallel((analyst → advisor_A → advisor_B → advisor_C) × N) → reconcile
 ```yaml
 flow:
   # Phase 1: 분석
+  - parallel:
+    - analyze-A
+    - analyze-B
+  - synthesize
   - retry:
       condition: score < 80
-      max: 3
+      max: 2
       flow:
-        - parallel:
-            - analyze-A
-            - analyze-B
-        - synthesize
-        - advise-X
-        - advise-Y
-        - advise-Z
+        - retrospect
         - review
   - hitl
   # Phase 2: 계획
   - retry:
-      condition: score < 80
-      max: 3
+      condition: validate false
+      max: 2
       flow:
         - plan
-        - plan-advise
         - plan-validate
-        - if:
-            condition: true
-            flow: plan-review
   - hitl
   # Phase 3: 구현
   - retry:
-      condition: false || score < 80
+      condition: validate false || score < 80
       max: 3
       flow:
         - build
-        - build-validate
-        - if:
-            condition: true
-            flow: build-review
+        - parallel:
+          - build-validate
+          - build-review
   - hitl
 ```
 
 **특징:**
 - 스텝 10개 이상
 - 3개 페이즈 (분석 → 설계 → 구현)
-- 각 페이즈에 retry + evaluator
-- HITL 2~3개 (페이즈 전환점마다)
-- 병렬 분석 + 조언
-- planner + advisor로 설계 품질 확보
-- builder + validator + evaluator로 구현 품질 확보
+- 각 페이즈에 retry + validate 또는 evaluator
+- HITL 3개 (페이즈 전환점마다)
+- 다른 관점의 병렬 분석 및 반복 회고 + 평가로 품질 확보
+- planner + validator로 설계 정확성 확보
+- builder + validator + evaluator로 구현 정확성, 품질 확보
+- 검증과 평가를 병렬 처리
 
 **적합한 작업 예시:**
 - 분석 → 설계 → 코드 생성 전체 파이프라인
@@ -152,9 +143,9 @@ flow:
 
 **스텝 구성:**
 ```
-Phase 1: parallel((analyst → advisor_A → advisor_B → advisor_C) × N) → reconciler → evaluator → hitl
-Phase 2: planner → advisor → validator → evaluator → hitl
-Phase 3: builder → validator → evaluator → hitl
+Phase 1: parallel{analyst × N} -> reconciler → retry{reconciler → evaluator} → hitl
+Phase 2: retry{planner → validator} → hitl
+Phase 3: retry{builder → parallel{validator, evaluator}} → hitl
 ```
 
 ---
@@ -166,19 +157,21 @@ Phase 3: builder → validator → evaluator → hitl
 **패턴:**
 ```yaml
 flow:
-  # Phase 1: 질문 도출
+  # Phase 1: 질문지 작성
   - parallel:
       - analyze-A
       - analyze-B
   - synthesize
-  - advise-X
-  - advise-Y
-  - advise-Z
-  - hitl
-  # Phase 2: 답변 분석 → 산출물 생성
+  # Phase 2: 반복 질의 응답
+  - retry:
+      condition: hitl
+      flow:
+        - hitl
+        - retrospect
+  # Phase 3: 답변 분석 → 산출물 생성
   - retry:
       condition: score < 80
-      max: 3
+      max: 2
       flow:
         - answer-analysis
         - draft
@@ -188,12 +181,12 @@ flow:
 ```
 
 **특징:**
-- 스텝 8~12개
+- 스텝 10~12개
 - 2개 페이즈 (질문 도출 → 산출물 생성)
-- Phase 1: 병렬 분석으로 질문 생성 → 통합 → 사용자 답변 수집
-- Phase 2: 답변 분석 → 산출물 초안 → 검증 → 평가
-- retry 1회 (산출물 생성 루프)
-- HITL 2개 (답변 수집 + 최종 확인)
+- Phase 1: 병렬 분석으로 질문 생성 → 통합
+- Phase 2: 회고 → 사용자 답변 수집
+- Phase 3: 답변 분석 → 산출물 작성 → 검증 → 평가
+- HITL 최소 2개 (답변 수집 + 최종 확인)
 - Tier 2와 달리 **사용자 답변이 분석의 핵심 입력**
 
 **Tier 2와의 핵심 차이:**
@@ -208,8 +201,9 @@ flow:
 
 **스텝 구성:**
 ```
-Phase 1: parallel((analyst → advisor × 3) × N) → reconciler → hitl(답변 수집)
-Phase 2: retry(score<80){ answer-analysis → draft → validate → evaluate } → hitl
+Phase 1: parallel(analyst × N) → reconciler
+Phase 2: retry(사용자 만족){hitl(답변 수집) → reconciler}
+Phase 3: retry{answer-analysis → draft → validate → evaluate} → hitl
 ```
 
 ---
@@ -221,20 +215,13 @@ Phase 2: retry(score<80){ answer-analysis → draft → validate → evaluate } 
 | 페이즈 | 사용 Role                | 목적 |
 |-----|------------------------|------|
 | 분석  | analyst (× N, 병렬)      | 다관점 현황 파악 |
-| 조언  | advisor (× 3)        | tradeoff · constraint · scope-reduction |
-| 통합  | reconciler (× 1)       | 분석 + 조언 산출물 병합 |
+| 통합  | reconciler (× 1)       | 분석 산출물 병합 |
 | 평가  | evaluator (× 1)        | score 기반 품질 게이트 |
 | 계획  | planner (× 1)          | 실행 계획 수립 |
 | 구현  | builder / executor (× 1) | 파일 생성 또는 명세 실행 |
 | 검증  | validator (× 1)        | 규칙 준수 합격/불합격 |
-
-| 질문 도출 | analyst (× N, 병렬) + advisor (× 3) | 사용자에게 확인할 질문 생성 |
-| 답변 분석 | reconciler (× 1)       | 사용자 답변 ↔ 분석 결과 교차 분석 |
-
-**조언 3인방 (Tier 2, 3, 4 공통):**
-- `tradeoff-advisor` — 선택지 비교, 장단점
-- `constraint-bypass-advisor` — 제약 식별, 우회 방안
-- `scope-reduction-advisor` — 최소 범위 접근
+| 질문 도출 | analyst (× N, 병렬) | 사용자에게 확인할 질문 생성 |
+| 답변 분석 | reconciler (× 1)       | 사용자 답변 분석 |
 
 ---
 
