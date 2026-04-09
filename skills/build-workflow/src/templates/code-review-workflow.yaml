@@ -44,12 +44,11 @@ define:
         desc: "통합된 리뷰 결과의 전체 코드 품질을 채점한다. 비즈니스 로직 정확성, 버그 위험도, 성능, 구조적 건전성, 패턴 준수를 종합 평가하고 개선 방향을 제시한다"
         input:
           - reconcile
-          - validate
         agent: code-level-evaluator
 
 flow:
   - retry:
-      condition: score < 80
+      condition: validate fail || score < 80
       max: 3
       flow:
         - parallel:

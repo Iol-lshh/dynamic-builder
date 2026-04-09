@@ -9,7 +9,7 @@ define:
           - question-generation-guide.md
         agent: essay-writing-analyst
 
-    - ew-advise-evidence:
+    - ew-analyze-evidence:
         desc: "경험주의 관점에서 텍스트의 근거 타당성을 분석한다. 관찰 가능한 사실과 귀납적 근거의 충분성을 평가하고 질문을 도출한다"
         details:
           - question-generation-guide.md
@@ -17,7 +17,7 @@ define:
           - ew-content-analyze
         agent: empiricist-analyst
 
-    - ew-advise-logic:
+    - ew-analyze-logic:
         desc: "선험주의 관점에서 텍스트의 논리 구조를 분석한다. 전제-결론의 연역적 타당성과 범주적 일관성을 평가하고 질문을 도출한다"
         details:
           - question-generation-guide.md
@@ -25,7 +25,7 @@ define:
           - ew-content-analyze
         agent: apriorist-analyst
 
-    - ew-advise-bias:
+    - ew-analyze-bias:
         desc: "해체주의 관점에서 텍스트의 편향을 분석한다. 이항 대립 구조, 숨겨진 위계, 배제된 시각을 식별하고 질문을 도출한다"
         details:
           - question-generation-guide.md
@@ -40,42 +40,15 @@ define:
           - question-generation-guide.md
         agent: essay-writing-analyst
 
-    - ew-advise-audience:
-        desc: "독자 관점에서 텍스트를 분석한다. 대상 독자의 전제 지식·기대·관심사와 텍스트의 정합성을 평가하고 질문을 도출한다"
-        details:
-          - question-generation-guide.md
-        input:
-          - ew-form-analyze
-        agent: essay-writing-advisor
-
-    - ew-advise-tone:
-        desc: "톤/문체 관점에서 텍스트를 분석한다. 어조·문체·어휘 수준이 매체와 목적에 부합하는지 평가하고 질문을 도출한다"
-        details:
-          - question-generation-guide.md
-        input:
-          - ew-form-analyze
-        agent: essay-writing-advisor
-
-    - ew-advise-structure:
-        desc: "구조 관점에서 텍스트를 분석한다. 서사/논증/해설 구조의 적합성, 분량 배분, 전개 흐름을 평가하고 질문을 도출한다"
-        details:
-          - question-generation-guide.md
-        input:
-          - ew-form-analyze
-        agent: essay-writing-advisor
-
     # 통합
     - ew-synthesize:
         desc: "축 A(내용/논증)와 축 B(형식/독자)의 분석 결과를 통합하고, 중복 제거, 우선순위 부여하여 사용자에게 제시할 질문 목록을 작성한다"
         input:
           - ew-content-analyze
-          - ew-advise-evidence
-          - ew-advise-logic
-          - ew-advise-bias
+          - ew-analyze-evidence
+          - ew-analyze-logic
+          - ew-analyze-bias
           - ew-form-analyze
-          - ew-advise-audience
-          - ew-advise-tone
-          - ew-advise-structure
         agent: essay-writing-reconciler
 
     # ── Phase 2: 산출물 생성 ──
@@ -98,50 +71,45 @@ define:
           - ew-answer-analysis
         agent: essay-writing-builder
 
-    # 2-3. 3관점 병렬 조언
-    - ew-draft-advise-emp:
+    # 2-3. 3관점 병렬 분석
+    - ew-draft-analyze-emp:
         desc: "경험주의 관점에서 초안을 검토한다. 주장의 경험적 근거가 충분한지, 사례와 데이터가 구체적인지, 귀납 추론에 비약이 없는지 평가하고 개선 조언을 제시한다"
         input:
           - ew-draft
         agent: empiricist-analyst
-    - ew-draft-advise-apr:
+    - ew-draft-analyze-apr:
         desc: "선험주의 관점에서 초안을 검토한다. 논증의 전제가 명시적인지, 연역 구조가 타당한지, 범주적 일관성이 유지되는지 평가하고 개선 조언을 제시한다"
         input:
           - ew-draft
         agent: apriorist-analyst
-    - ew-draft-advise-dct:
+    - ew-draft-analyze-dct:
         desc: "해체주의 관점에서 초안을 검토한다. 숨겨진 편향, 이항 대립의 위계, 배제된 시각이 있는지 식별하고 개선 조언을 제시한다"
         input:
           - ew-draft
         agent: deconstructionist-analyst
-
-    # 2-4. 회고 (조언을 반영한 수정본)
-    - ew-retrospect:
-        desc: "3관점 조언을 반영하여 초안을 수정·개선한다"
+    - ew-draft-synthesize:
+        desc: "3관점 초안 검토 내용을 조율하여 하나의 문서를 작성한다."
         input:
           - ew-draft
-          - ew-draft-advise-emp
-          - ew-draft-advise-apr
-          - ew-draft-advise-dct
+          - ew-draft-analyze-emp
+          - ew-draft-analyze-apr
+          - ew-draft-analyze-dct
         agent: essay-writing-reconciler
 
-    # 2-6. 검증
-    - ew-validate:
-        desc: "수정된 글의 구조 규칙 준수 여부를 검증한다. 논증 완전성, 독자 적합성, 형식 준수를 체크한다"
-        details:
-          - ew-validation-rules.md
+    # 2-4. 회고 (분석을 반영한 수정본)
+    - ew-retrospect:
+        desc: "원고를 수정·개선한다"
         input:
-          - ew-retrospect
-        agent: essay-writing-validator
+          - ew-draft-synthesize
+        agent: essay-writing-reconciler
 
-    # 2-7. 평가
+    # 2-5. 평가
     - ew-review:
         desc: "논픽션 글의 품질을 5개 항목으로 채점한다. 논증 타당성, 독자 적합성, 구조 완성도, 문체 일관성, 근거 활용도를 평가한다"
         details:
           - ew-scoring-criteria.md
         input:
           - ew-retrospect
-          - ew-validate
         agent: essay-writing-evaluator
 
 flow:
@@ -150,29 +118,24 @@ flow:
     - flow:
       - ew-content-analyze
       - parallel:
-        - ew-advise-evidence
-        - ew-advise-logic
-        - ew-advise-bias
-    - flow:
-      - ew-form-analyze
-      - parallel:
-        - ew-advise-audience
-        - ew-advise-tone
-        - ew-advise-structure
+        - ew-analyze-evidence
+        - ew-analyze-logic
+        - ew-analyze-bias
+    - ew-form-analyze
   - ew-synthesize
   - hitl
-  # Phase 2: 산출물 생성 (분석 → 작성 → 순차 3관점 조언 → 간결화 → 검증 → 평가)
+  # Phase 2: 산출물 생성
+  - ew-answer-analysis
+  - ew-draft
+  - parallel:
+    - ew-draft-analyze-emp
+    - ew-draft-analyze-apr
+    - ew-draft-analyze-dct
+  - ew-draft-synthesize
   - retry:
       condition: score < 80
-      max: 3
+      max: 2
       flow:
-        - ew-answer-analysis
-        - ew-draft
-        - parallel:
-          - ew-draft-advise-emp
-          - ew-draft-advise-apr
-          - ew-draft-advise-dct
         - ew-retrospect
-        - ew-validate
         - ew-review
   - hitl
