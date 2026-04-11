@@ -42,8 +42,12 @@ const SKILL_DIR = path.resolve(__dirname, "..");
 const CLAUDE_DIR = path.join(os.homedir(), ".claude");
 const PROJECT_ROOT = findProjectRoot();
 
-const AGENTS_BUILD_DIR = path.join(CLAUDE_DIR, "agents");
+const AGENTS_BUILD_DIRS = [
+  PROJECT_ROOT && path.join(PROJECT_ROOT, ".claude/agents"),
+  path.join(CLAUDE_DIR, "agents"),
+].filter(Boolean);
 const REFERENCES_DIR = path.join(CLAUDE_DIR, "references");
+const MANIFEST_PATH = path.join(CLAUDE_DIR, "dynamic-builder/build-workflow/.workflow-details-manifest.json");
 
 // 스코프 정의 (읽기 + 쓰기)
 const SCOPES = [
@@ -619,9 +623,9 @@ function generateSkillMd(name, parsed) {
   const warnings = [];
   for (const [stepName, { agent, shell, tool, refs, details }] of Object.entries(steps)) {
     const resolvedAgent = agents[agent] || agent;
-    if (!shell && !tool && agent && !fs.existsSync(path.join(AGENTS_BUILD_DIR, `${resolvedAgent}.md`))) {
+    if (!shell && !tool && agent && !AGENTS_BUILD_DIRS.some(d => fs.existsSync(path.join(d, `${resolvedAgent}.md`)))) {
       warnings.push(
-        `- ${stepName}: agent \`${resolvedAgent}\` not found in \`${AGENTS_BUILD_DIR}/\``
+        `- ${stepName}: agent \`${resolvedAgent}\` not found in agents directories`
       );
     }
     for (const ref of refs) {
@@ -787,7 +791,15 @@ function buildWorkflow(templateFile, skillsDir) {
   const md = generateSkillMd(name, parsed);
   fs.writeFileSync(path.join(skillOutDir, "SKILL.md"), md, "utf-8");
 
-  return { name, stepCount: Object.keys(parsed.steps).length, detailCount: allDetails.size };
+  // step별 details 매핑 (매니페스트용)
+  const stepDetails = {};
+  for (const [stepName, step] of Object.entries(parsed.steps)) {
+    if (step.details.length > 0) {
+      stepDetails[stepName] = step.details;
+    }
+  }
+
+  return { name, stepCount: Object.keys(parsed.steps).length, detailCount: allDetails.size, stepDetails };
 }
 
 // ── 스코프별 템플릿 수집 ──────────────────────────────────
@@ -835,12 +847,16 @@ function buildAll() {
 
   let success = 0;
   let failed = 0;
+  const manifest = {};
 
   for (const { file, scope } of templates) {
     const fileName = path.basename(file, path.extname(file));
     try {
-      const { name, stepCount, detailCount } = buildWorkflow(file, scope.outputDir);
+      const { name, stepCount, detailCount, stepDetails } = buildWorkflow(file, scope.outputDir);
       nowGenerated[scope.indexFile].add(name);
+      if (Object.keys(stepDetails).length > 0) {
+        manifest[name] = stepDetails;
+      }
       const detailNote = detailCount > 0 ? `, ${detailCount} details` : "";
       console.log(`  ✓ [${scope.name}] ${name} (${stepCount} steps${detailNote})`);
       success++;
@@ -866,6 +882,13 @@ function buildAll() {
     }
 
     saveBuildIndex(f, { generated: [...now].sort() });
+  }
+
+  // 매니페스트 생성
+  if (Object.keys(manifest).length > 0) {
+    fs.mkdirSync(path.dirname(MANIFEST_PATH), { recursive: true });
+    fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2) + "\n", "utf-8");
+    console.log(`  📋 manifest: ${MANIFEST_PATH}`);
   }
 
   console.log(`\n완료: ${success}개 성공, ${failed}개 실패, ${removed}개 삭제\n`);
@@ -906,6 +929,13 @@ function cleanOnly() {
     }
 
     saveBuildIndex(f, { generated: [] });
+  }
+
+  // 매니페스트 삭제
+  if (fs.existsSync(MANIFEST_PATH)) {
+    fs.unlinkSync(MANIFEST_PATH);
+    console.log("  ✗ removed: .workflow-details-manifest.json");
+    totalRemoved++;
   }
 
   if (totalRemoved === 0) {

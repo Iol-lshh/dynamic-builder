@@ -47,6 +47,26 @@
             "statusMessage": "워크트리 경로 확인 중..."
           }
         ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/workflow-details-read-tracker.sh",
+            "statusMessage": "워크플로우 details 읽기 추적 중..."
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/workflow-details-enforcer.sh",
+            "statusMessage": "워크플로우 details 읽기 검증 중..."
+          }
+        ]
       }
     ]
   }
