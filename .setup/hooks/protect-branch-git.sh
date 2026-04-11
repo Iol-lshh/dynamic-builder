@@ -22,11 +22,3 @@ if echo "$GIT_CMD" | grep -qE 'git commit'; then
     exit 2
   fi
 fi
-
-# 3) 워크트리 바깥에서 commit 금지
-if echo "$GIT_CMD" | grep -qE 'git commit'; then
-  if [[ "$GIT_DIR" != *"/worktrees/"* ]]; then
-    echo "{\"decision\":\"ask\",\"reason\":\"워크트리 바깥(브랜치: $BRANCH)에서 commit은 금지됩니다. /worktree-entry-workflow 로 worktree를 생성하세요.\"}"
-    exit 0
-  fi
-fi

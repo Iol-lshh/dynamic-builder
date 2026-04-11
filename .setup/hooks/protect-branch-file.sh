@@ -8,12 +8,6 @@ GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
 
 # 1) 보호 브랜치에서 수정 금지
 if [[ "$BRANCH" =~ ^(main|master|dev|stag|rc) ]]; then
-  echo "{\"decision\":\"ask\",\"reason\":\"보호 브랜치 [$BRANCH] 에서 직접 파일 수정입니다. 허용하려면 승인하세요. 그렇지 않으면 /worktree-entry-workflow 로 worktree를 생성하세요.\"}"
-  exit 0
-fi
-
-# 2) 워크트리 바깥에서 수정 금지
-if [[ "$GIT_DIR" != *"/worktrees/"* ]]; then
-  echo "{\"decision\":\"ask\",\"reason\":\"워크트리 바깥(브랜치: $BRANCH)에서 파일 수정은 금지됩니다. /worktree-entry-workflow 로 worktree를 생성하세요.\"}"
+  echo "{\"decision\":\"ask\",\"reason\":\"보호 브랜치 [$BRANCH] 에서 직접 파일 수정입니다. 허용하려면 승인하세요.\"}"
   exit 0
 fi

@@ -14,7 +14,7 @@ fi
 # 1) 워크트리 바깥이면 경고
 if [[ "$GIT_DIR" != *"/worktrees/"* ]]; then
   BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
-  echo "{\"decision\":\"ask\",\"reason\":\"워크트리 바깥(브랜치: $BRANCH)에서 Bash 명령을 실행하려 합니다. /worktree-entry-workflow 로 worktree를 생성하세요.\"}"
+  echo "{\"decision\":\"ask\",\"reason\":\"워크트리 바깥(브랜치: $BRANCH)에서 Bash 명령을 실행하려 합니다.\"}"
   exit 0
 fi
 
