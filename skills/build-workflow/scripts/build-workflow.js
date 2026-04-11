@@ -47,7 +47,7 @@ const AGENTS_BUILD_DIRS = [
   path.join(CLAUDE_DIR, "agents"),
 ].filter(Boolean);
 const REFERENCES_DIR = path.join(CLAUDE_DIR, "references");
-const MANIFEST_PATH = path.join(CLAUDE_DIR, "dynamic-builder/build-workflow/.workflow-details-manifest.json");
+const MANIFEST_PATH = path.join(CLAUDE_DIR, "dynamic-builder/build-workflow/.workflow-details-manifest.local.json");
 
 // 스코프 정의 (읽기 + 쓰기)
 const SCOPES = [
@@ -934,7 +934,7 @@ function cleanOnly() {
   // 매니페스트 삭제
   if (fs.existsSync(MANIFEST_PATH)) {
     fs.unlinkSync(MANIFEST_PATH);
-    console.log("  ✗ removed: .workflow-details-manifest.json");
+    console.log("  ✗ removed: .workflow-details-manifest.local.json");
     totalRemoved++;
   }
 

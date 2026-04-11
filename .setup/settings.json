@@ -49,6 +49,16 @@
         ]
       },
       {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/workflow-meta-creator.sh",
+            "statusMessage": "워크플로우 메타 파일 생성 중..."
+          }
+        ]
+      },
+      {
         "matcher": "Read",
         "hooks": [
           {
