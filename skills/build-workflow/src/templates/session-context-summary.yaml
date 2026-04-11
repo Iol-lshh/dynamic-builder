@@ -1,0 +1,67 @@
+define:
+  agents:
+    - ctx-reconciler: task-lifecycle-reconciler
+
+  steps:
+    - ctx-artifact-inventory:
+        desc: "세션 컨텍스트에서 생성된 산출물(파일, 코드, 문서)을 식별하고 목록화한다"
+        details:
+          - artifact-inventory-guide.md
+        agent: task-lifecycle-analyst
+
+    - ctx-step-classification:
+        desc: "각 산출물에 대해 도출 과정들을 단일 행동 스텝(리소스 획득, 분석, 계획, 구현, 검증, 평가, 실행)으로 분석하고 정리한다"
+        details:
+          - step-classification-guide.md
+        agent: task-lifecycle-analyst
+
+    - ctx-script-collection:
+        desc: "세션에서 사용한 스크립트, 명령어, 코드 스니펫을 수집하고 분류한다"
+        details:
+          - script-collection-guide.md
+        agent: code-level-analyst
+
+    - ctx-synthesis:
+        desc: "3개 분석 결과를 통합하고, 역방향 최적 과정 요약을 포함한 최종 마크다운 문서를 작성한다"
+        details:
+          - synthesis-output-format.md
+        input:
+          - ctx-artifact-inventory
+          - ctx-step-classification
+          - ctx-script-collection
+        agent: ctx-reconciler
+
+    - ctx-review:
+        desc: "최종 문서의 품질을 평가한다: 문제 재개 가능성, 산출물 도출 과정 완전성, 스텝 분류 정확성, 역방향 요약 논리성, 스크립트 정합성, 핵심 주의 사항 포함성"
+        details:
+          - review-scoring-criteria.md
+        input:
+          - ctx-synthesis
+        agent: task-lifecycle-evaluator
+
+    - ctx-retrospect:
+        desc: "평가 피드백을 반영하여 통합 문서를 재작성한다"
+        details:
+          - synthesis-output-format.md
+        input:
+          - ctx-artifact-inventory
+          - ctx-step-classification
+          - ctx-script-collection
+          - ctx-synthesis
+          - ctx-review
+        agent: ctx-reconciler
+
+flow:
+  - parallel:
+    - ctx-artifact-inventory
+    - ctx-step-classification
+    - ctx-script-collection
+  - ctx-synthesis
+  - ctx-review
+  - retry:
+      condition: score < 80
+      max: 2
+      flow:
+        - ctx-retrospect
+        - ctx-review
+  - hitl
