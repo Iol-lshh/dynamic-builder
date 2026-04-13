@@ -38,15 +38,15 @@ if [[ -d "$LIB_DIR/claude" ]]; then
   echo "[OK]   .lib/claude/"
 fi
 
-# __AGENT_HOME__, __AGENT_HOME_NAME__ 플레이스홀더 치환
+# 플레이스홀더 치환
 AGENT_HOME="$HOME/.claude"
 AGENT_HOME_NAME=".claude"
 find "$PLUGIN_DIR" \( -name "*.sh" -o -name "*.js" -o -name "*.md" -o -name "*.yaml" \) | while read -r f; do
-  if grep -q '__AGENT_HOME' "$f" 2>/dev/null; then
-    sed -i '' "s|__AGENT_HOME_NAME__|$AGENT_HOME_NAME|g; s|__AGENT_HOME__|$AGENT_HOME|g" "$f"
+  if grep -q '__AGENT_HOME\|__PLUGIN_DIR__' "$f" 2>/dev/null; then
+    sed -i '' "s|__AGENT_HOME_NAME__|$AGENT_HOME_NAME|g; s|__AGENT_HOME__|$AGENT_HOME|g; s|__PLUGIN_DIR__|$PLUGIN_DIR|g" "$f"
   fi
 done
-echo "[OK]   AGENT_HOME=$AGENT_HOME 주입"
+echo "[OK]   AGENT_HOME=$AGENT_HOME, PLUGIN_DIR=$PLUGIN_DIR 주입"
 
 echo "[OK]   플러그인 복사 완료"
 

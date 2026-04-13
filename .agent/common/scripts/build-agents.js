@@ -47,8 +47,12 @@ if (!process.env.AGENT_HOME) {
   console.error("[ERROR] AGENT_HOME 환경변수가 설정되지 않았습니다.");
   process.exit(1);
 }
+if (!process.env.PLUGIN_DIR) {
+  console.error("[ERROR] PLUGIN_DIR 환경변수가 설정되지 않았습니다.");
+  process.exit(1);
+}
 const AGENT_HOME = process.env.AGENT_HOME;
-const PLUGIN_DIR = path.join(AGENT_HOME, "plugins/marketplaces/dynamic-builder");
+const PLUGIN_DIR = process.env.PLUGIN_DIR;
 const SKILL_DIR = path.join(PLUGIN_DIR, "skills/build-agent");
 const AGENT_DIR = AGENT_HOME;
 const DYNAMIC_BUILDER_DIR = path.join(os.homedir(), ".dynamic-builder");
