@@ -10,7 +10,7 @@
     {
       "name": "dynamic-builder",
       "description": "perspective + role 조합으로 agent를 빌드하고, YAML 워크플로우를 skill로 변환하는 빌드 시스템",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "source": "./"
     }
   ]
