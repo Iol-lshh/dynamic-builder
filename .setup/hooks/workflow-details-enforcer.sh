@@ -4,7 +4,7 @@
 # 통과 시 pending에서 소비하여 reads.{step}에 기록한다.
 #
 # 작업 정보: .local/.workflow-runtime.json
-# 매니페스트: ~/.claude/dynamic-builder/build-workflow/.workflow-details-manifest.local.json
+# 매니페스트: ~/.dynamic-builder/build-workflow/.workflow-details-manifest.local.json
 # 읽기 로그: .local/{작업명}/.workflow-log.json
 
 INPUT=$(cat)
@@ -32,7 +32,7 @@ if [ -z "$WORKFLOW" ]; then
 fi
 
 # 매니페스트에서 해당 스텝의 details 목록
-MANIFEST="$HOME/.claude/dynamic-builder/build-workflow/.workflow-details-manifest.local.json"
+MANIFEST="$HOME/.dynamic-builder/build-workflow/.workflow-details-manifest.local.json"
 if [ ! -f "$MANIFEST" ]; then
   exit 0
 fi

@@ -3,8 +3,8 @@
 # .local/.workflow-runtime.json에 작업 정보를 등록한다.
 #
 # 빌드 인덱스 탐색 경로 (3-tier scope):
-#   1) .claude/dynamic-builder/build-workflow/.build-index.local.json  (project)
-#   2) ~/.claude/dynamic-builder/build-workflow/.build-index.local.json (global)
+#   1) .dynamic-builder/build-workflow/.build-index.local.json  (project)
+#   2) ~/.dynamic-builder/build-workflow/.build-index.local.json (global)
 
 INPUT=$(cat)
 SKILL=$(echo "$INPUT" | jq -r '.tool_input.skill // ""')
@@ -16,8 +16,8 @@ fi
 
 # 빌드 인덱스에서 워크플로우 존재 여부 확인
 INDEX_PATHS=(
-  ".claude/dynamic-builder/build-workflow/.build-index.local.json"
-  "$HOME/.claude/dynamic-builder/build-workflow/.build-index.local.json"
+  ".dynamic-builder/build-workflow/.build-index.local.json"
+  "$HOME/.dynamic-builder/build-workflow/.build-index.local.json"
 )
 
 FOUND="false"

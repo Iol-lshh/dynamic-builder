@@ -44,23 +44,23 @@ dynamic-builder/
 빌드 시 소스를 3단계로 해석한다. 같은 이름의 파일은 상위 스코프가 우선한다.
 
 ```
-프로젝트 ({project}/.claude/dynamic-builder/)  ← 최우선
+프로젝트 ({project}/.dynamic-builder/)  ← 최우선
   ↓ fallback
-글로벌 (~/.claude/dynamic-builder/)
+글로벌 (~/.dynamic-builder/)
   ↓ fallback
 기본 (플러그인 내부 src/)
 ```
 
 | 스코프 | 소스 위치 | 빌드 출력 |
 |---|---|---|
-| 프로젝트 | `{project}/.claude/dynamic-builder/build-agent/src/` | `{project}/.claude/agents/` |
-| 글로벌 | `~/.claude/dynamic-builder/build-agent/src/` | `~/.claude/agents/` |
+| 프로젝트 | `{project}/.dynamic-builder/build-agent/src/` | `{project}/.claude/agents/` |
+| 글로벌 | `~/.dynamic-builder/build-agent/src/` | `~/.claude/agents/` |
 | 기본 | 플러그인 내부 `skills/build-agent/src/` | `~/.claude/agents/` |
 
 사용자 소스 디렉토리 구조:
 
 ```
-~/.claude/dynamic-builder/          # 글로벌 사용자 소스
+~/.dynamic-builder/          # 글로벌 사용자 소스
   build-agent/
     src/perspectives/, roles/, principles/, templates/
     .build-index.local.json
@@ -68,7 +68,7 @@ dynamic-builder/
     src/templates/, details/
     .build-index.local.json
 
-{project}/.claude/dynamic-builder/  # 프로젝트 사용자 소스
+{project}/.dynamic-builder/  # 프로젝트 사용자 소스
   build-agent/
     src/perspectives/, roles/, principles/, templates/
     .build-index.local.json
@@ -152,8 +152,8 @@ dynamic-builder/
 
 **새 agent 추가 (플러그인 수정 없이)**
 
-1. `~/.claude/dynamic-builder/build-agent/src/` 아래에 필요한 perspective / role / template 추가
-2. 프로젝트 전용이면 `{project}/.claude/dynamic-builder/build-agent/src/`에 추가
+1. `~/.dynamic-builder/build-agent/src/` 아래에 필요한 perspective / role / template 추가
+2. 프로젝트 전용이면 `{project}/.dynamic-builder/build-agent/src/`에 추가
 3. 빌드 실행 → 해당 스코프의 출력 위치에 생성됨
 
 ---
@@ -232,9 +232,9 @@ flow:
 
 **새 workflow 추가 (플러그인 수정 없이)**
 
-1. `~/.claude/dynamic-builder/build-workflow/src/templates/`에 YAML 파일 추가
+1. `~/.dynamic-builder/build-workflow/src/templates/`에 YAML 파일 추가
 2. 필요한 details 파일은 `src/details/`에 추가
-3. 프로젝트 전용이면 `{project}/.claude/dynamic-builder/build-workflow/src/`에 추가
+3. 프로젝트 전용이면 `{project}/.dynamic-builder/build-workflow/src/`에 추가
 4. 빌드 실행 → 해당 스코프의 출력 위치에 생성됨
 
 **워크플로우 생성 흐름 (`create-workflow-blueprint`)**

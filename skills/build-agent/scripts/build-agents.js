@@ -3,8 +3,8 @@
  * Agent 빌드 스크립트 (3-tier scope chain)
  *
  * 3단계 스코프 체인으로 소스를 해석하여 agent를 빌드한다:
- *   project (.claude/dynamic-builder/build-agent/src/)  ← 최우선
- *   global  (~/.claude/dynamic-builder/build-agent/src/)
+ *   project (.dynamic-builder/build-agent/src/)  ← 최우선
+ *   global  (~/.dynamic-builder/build-agent/src/)
  *   default (플러그인 내부 src/)
  *
  * 부품(perspectives, roles, principles)은 스코프 순서로 오버라이드.
@@ -25,11 +25,11 @@ const path = require("path");
 
 // ── 프로젝트 루트 탐색 ───────────────────────────────────────
 function findProjectRoot() {
-  const homeClaude = path.join(os.homedir(), ".claude");
+  const homeDb = path.join(os.homedir(), ".dynamic-builder");
   let dir = process.cwd();
   while (dir !== path.dirname(dir)) {
-    const candidate = path.join(dir, ".claude");
-    if (fs.existsSync(candidate) && candidate !== homeClaude) {
+    const candidate = path.join(dir, ".dynamic-builder");
+    if (fs.existsSync(candidate) && candidate !== homeDb) {
       return dir;
     }
     dir = path.dirname(dir);
@@ -40,27 +40,28 @@ function findProjectRoot() {
 // ── 경로 설정 ──────────────────────────────────────────────
 const SKILL_DIR = path.resolve(__dirname, "..");
 const CLAUDE_DIR = path.join(os.homedir(), ".claude");
+const DYNAMIC_BUILDER_DIR = path.join(os.homedir(), ".dynamic-builder");
 const PROJECT_ROOT = findProjectRoot();
 
 // 스코프 정의 (읽기 + 쓰기)
 const SCOPES = [
   PROJECT_ROOT && {
     name: "project",
-    srcDir: path.join(PROJECT_ROOT, ".claude/dynamic-builder/build-agent/src"),
+    srcDir: path.join(PROJECT_ROOT, ".dynamic-builder/build-agent/src"),
     outputDir: path.join(PROJECT_ROOT, ".claude/agents"),
-    indexFile: path.join(PROJECT_ROOT, ".claude/dynamic-builder/build-agent/.build-index.local.json"),
+    indexFile: path.join(PROJECT_ROOT, ".dynamic-builder/build-agent/.build-index.local.json"),
   },
   {
     name: "global",
-    srcDir: path.join(CLAUDE_DIR, "dynamic-builder/build-agent/src"),
+    srcDir: path.join(DYNAMIC_BUILDER_DIR, "build-agent/src"),
     outputDir: path.join(CLAUDE_DIR, "agents"),
-    indexFile: path.join(CLAUDE_DIR, "dynamic-builder/build-agent/.build-index.local.json"),
+    indexFile: path.join(DYNAMIC_BUILDER_DIR, "build-agent/.build-index.local.json"),
   },
   {
     name: "default",
     srcDir: path.join(SKILL_DIR, "src"),
     outputDir: path.join(CLAUDE_DIR, "agents"),
-    indexFile: path.join(CLAUDE_DIR, "dynamic-builder/build-agent/.build-index.local.json"),
+    indexFile: path.join(DYNAMIC_BUILDER_DIR, "build-agent/.build-index.local.json"),
   },
 ].filter(Boolean);
 

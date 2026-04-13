@@ -3,8 +3,8 @@
  * Workflow 빌드 스크립트 (3-tier scope chain)
  *
  * 3단계 스코프 체인으로 소스를 해석하여 workflow skill을 빌드한다:
- *   project (.claude/dynamic-builder/build-workflow/src/)  ← 최우선
- *   global  (~/.claude/dynamic-builder/build-workflow/src/)
+ *   project (.dynamic-builder/build-workflow/src/)  ← 최우선
+ *   global  (~/.dynamic-builder/build-workflow/src/)
  *   default (플러그인 내부 src/)
  *
  * details는 스코프 순서로 오버라이드.
@@ -25,11 +25,11 @@ const path = require("path");
 
 // ── 프로젝트 루트 탐색 ───────────────────────────────────────
 function findProjectRoot() {
-  const homeClaude = path.join(os.homedir(), ".claude");
+  const homeDb = path.join(os.homedir(), ".dynamic-builder");
   let dir = process.cwd();
   while (dir !== path.dirname(dir)) {
-    const candidate = path.join(dir, ".claude");
-    if (fs.existsSync(candidate) && candidate !== homeClaude) {
+    const candidate = path.join(dir, ".dynamic-builder");
+    if (fs.existsSync(candidate) && candidate !== homeDb) {
       return dir;
     }
     dir = path.dirname(dir);
@@ -40,6 +40,7 @@ function findProjectRoot() {
 // ── 경로 설정 ──────────────────────────────────────────────
 const SKILL_DIR = path.resolve(__dirname, "..");
 const CLAUDE_DIR = path.join(os.homedir(), ".claude");
+const DYNAMIC_BUILDER_DIR = path.join(os.homedir(), ".dynamic-builder");
 const PROJECT_ROOT = findProjectRoot();
 
 const AGENTS_BUILD_DIRS = [
@@ -47,27 +48,27 @@ const AGENTS_BUILD_DIRS = [
   path.join(CLAUDE_DIR, "agents"),
 ].filter(Boolean);
 const REFERENCES_DIR = path.join(CLAUDE_DIR, "references");
-const MANIFEST_PATH = path.join(CLAUDE_DIR, "dynamic-builder/build-workflow/.workflow-details-manifest.local.json");
+const MANIFEST_PATH = path.join(DYNAMIC_BUILDER_DIR, "build-workflow/.workflow-details-manifest.local.json");
 
 // 스코프 정의 (읽기 + 쓰기)
 const SCOPES = [
   PROJECT_ROOT && {
     name: "project",
-    srcDir: path.join(PROJECT_ROOT, ".claude/dynamic-builder/build-workflow/src"),
+    srcDir: path.join(PROJECT_ROOT, ".dynamic-builder/build-workflow/src"),
     outputDir: path.join(PROJECT_ROOT, ".claude/skills"),
-    indexFile: path.join(PROJECT_ROOT, ".claude/dynamic-builder/build-workflow/.build-index.local.json"),
+    indexFile: path.join(PROJECT_ROOT, ".dynamic-builder/build-workflow/.build-index.local.json"),
   },
   {
     name: "global",
-    srcDir: path.join(CLAUDE_DIR, "dynamic-builder/build-workflow/src"),
+    srcDir: path.join(DYNAMIC_BUILDER_DIR, "build-workflow/src"),
     outputDir: path.join(CLAUDE_DIR, "skills"),
-    indexFile: path.join(CLAUDE_DIR, "dynamic-builder/build-workflow/.build-index.local.json"),
+    indexFile: path.join(DYNAMIC_BUILDER_DIR, "build-workflow/.build-index.local.json"),
   },
   {
     name: "default",
     srcDir: path.join(SKILL_DIR, "src"),
     outputDir: path.join(CLAUDE_DIR, "skills"),
-    indexFile: path.join(CLAUDE_DIR, "dynamic-builder/build-workflow/.build-index.local.json"),
+    indexFile: path.join(DYNAMIC_BUILDER_DIR, "build-workflow/.build-index.local.json"),
   },
 ].filter(Boolean);
 
