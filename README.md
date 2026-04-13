@@ -1,44 +1,72 @@
 # dynamic-builder
 
-Claude Code 빌드 시스템 플러그인. `perspective + role` 조합으로 agent를 빌드하고, YAML 워크플로우를 skill로 변환한다.
+에이전트 빌드 시스템 플러그인. `perspective + role` 조합으로 agent를 빌드하고, YAML 워크플로우를 skill로 변환한다.
 
 ## 구조
 
-### 플러그인 구조
+### 소스 구조
 
 ```
 dynamic-builder/
-├── .claude-plugin/
-│   └── plugin.json             ← 플러그인 매니페스트
-├── skills/
-│   ├── build-agent/            ← agent 빌드 시스템
-│   ├── build-workflow/         ← workflow 빌드 시스템
-│   ├── build/                  ← agent + workflow 통합 빌드
-│   ├── clean/                  ← 빌드 산출물 삭제
-│   ├── clean-worktree/         ← worktree 정리
-│   └── uninstall/              ← 플러그인 제거
-├── .setup/
-│   └── claude/                 ← 설치/환경 구성
-│       ├── hooks/
+├── .agent/                        ← 에이전트별 설정 + 스크립트
+│   ├── common/
+│   │   ├── hooks/                 ← 공통 hooks
+│   │   └── scripts/               ← 공통 스크립트 (빌드/클린 엔진)
+│   ├── claude/                    ← Claude Code 전용
+│   │   ├── scripts/               ← install/uninstall + clean-worktree
+│   │   └── settings.json
+│   └── gemini/                    ← Gemini CLI 전용
 │       └── scripts/
-└── references/                 ← agent가 참조하는 공통 문서
+├── .lib/                          ← 플러그인 컨텐츠 (설치 시 배포)
+│   ├── common/                    ← 공통 (skills, rules, references)
+│   │   ├── skills/
+│   │   ├── rules/
+│   │   └── references/
+│   └── claude/                    ← Claude 전용 (.claude-plugin)
+│       └── .claude-plugin/
+├── .setup/
+│   └── scripts/                   ← 통합 install/uninstall
+├── AGENT.md                       ← 에이전트 공통 지침
+└── README.md
 ```
 
-### 빌드 산출물 (자동 생성)
+## 설치
+
+### 설치 구조
 
 ```
-~/.claude/
-  agents/                       ← 빌드된 agent (글로벌/기본)
-  skills/
-    {workflow-name}/            ← 빌드된 workflow skill (글로벌/기본)
-      SKILL.md
-      references/
+~/.dynamic-builder/
+  .agent/                          ← .agent/ 복사본 (스크립트 + hooks 소스)
+    common/scripts/                ← 빌드/클린 엔진
+    claude/scripts/                ← Claude install/uninstall
+    common/hooks/                  ← hook 소스
+  .build-config.local.json         ← 설치 타겟 기록
+  build-agent/src/                 ← 글로벌 사용자 소스
+  build-workflow/src/
 
-{project}/.claude/
-  agents/                       ← 빌드된 agent (프로젝트)
-  skills/
-    {workflow-name}/            ← 빌드된 workflow skill (프로젝트)
+$AGENT_HOME/                       ← 에이전트 홈 (~/.claude, ~/.gemini 등)
+  plugins/marketplaces/dynamic-builder/
+    .claude-plugin/                ← 플러그인 매니페스트 (Claude)
+    skills/                        ← SKILL.md + 래퍼 스크립트
+    rules/
+    references/
+  hooks/                           ← hook 파일 복사
+  settings.json                    ← settings 머지
+  agents/                          ← 빌드된 agent (글로벌/기본)
+  skills/{workflow-name}/          ← 빌드된 workflow skill
 ```
+
+### 스크립트 실행 흐름
+
+```
+에이전트가 skill 호출
+  → 플러그인 내 래퍼 스크립트 (AGENT_HOME 주입)
+    → ~/.dynamic-builder/.agent/common/scripts/ 실제 스크립트
+```
+
+래퍼 스크립트에 `__AGENT_HOME__` 플레이스홀더가 있으며, install 시 에이전트별 경로로 치환된다.
+
+## 빌드
 
 ### 3-tier 스코프 체인
 
@@ -54,9 +82,9 @@ dynamic-builder/
 
 | 스코프 | 소스 위치 | 빌드 출력 |
 |---|---|---|
-| 프로젝트 | `{project}/.dynamic-builder/build-agent/src/` | `{project}/.claude/agents/` |
-| 글로벌 | `~/.dynamic-builder/build-agent/src/` | `~/.claude/agents/` |
-| 기본 | 플러그인 내부 `skills/build-agent/src/` | `~/.claude/agents/` |
+| 프로젝트 | `{project}/.dynamic-builder/build-agent/src/` | `{project}/$AGENT_HOME_NAME/agents/` |
+| 글로벌 | `~/.dynamic-builder/build-agent/src/` | `$AGENT_HOME/agents/` |
+| 기본 | 플러그인 내부 `skills/build-agent/src/` | `$AGENT_HOME/agents/` |
 
 사용자 소스 디렉토리 구조:
 
@@ -82,19 +110,8 @@ dynamic-builder/
 
 | 실행 위치 | build | clean |
 |---|---|---|
-| 프로젝트 밖 | 기본+글로벌 → `~/.claude/` | 글로벌 인덱스 → `~/.claude/` 삭제 |
-| 프로젝트 안 | 기본+글로벌 → `~/.claude/` + 프로젝트 → `{project}/.claude/` | 글로벌 + 프로젝트 인덱스 삭제 |
-
-### Hooks/Settings (.setup/claude/)
-
-```
-.setup/claude/
-  hooks/
-    protect-branch-file.sh    ← 보호 브랜치 파일 수정 차단
-    protect-branch-git.sh     ← 보호 브랜치 git 작업 차단
-    protect-worktree-bash.sh  ← worktree 경계 밖 Bash 작업 차단
-  settings.json               ← hooks 설정
-```
+| 프로젝트 밖 | 기본+글로벌 → `$AGENT_HOME/` | 글로벌 인덱스 → `$AGENT_HOME/` 삭제 |
+| 프로젝트 안 | 기본+글로벌 → `$AGENT_HOME/` + 프로젝트 → `{project}/$AGENT_HOME_NAME/` | 글로벌 + 프로젝트 인덱스 삭제 |
 
 ---
 
@@ -172,7 +189,7 @@ YAML로 정의된 workflow를 skill로 빌드하는 시스템.
 /dynamic-builder:build-workflow --clean
 ```
 
-빌드 결과: `~/.claude/skills/{name}/SKILL.md` + `references/` (또는 프로젝트 스코프면 `{project}/.claude/skills/`)
+빌드 결과: `$AGENT_HOME/skills/{name}/SKILL.md` + `references/` (프로젝트 스코프면 `{project}/$AGENT_HOME_NAME/skills/`)
 
 **workflow 정의 구조**
 
@@ -183,10 +200,10 @@ define:
   steps:
     - step-name:
         desc: "agent에게 전달할 작업 설명"
-        agent: agent-name       # ~/.claude/agents/ 에서 로드
+        agent: agent-name       # $AGENT_HOME/agents/ 에서 로드
         details:                # optional - 워크플로우 로컬 참조 (src/details/ 기준)
           - detail-file.md
-        refs:                   # optional - 글로벌 참조 (~/.claude/references/ 기준)
+        refs:                   # optional - 글로벌 참조 ($AGENT_HOME/references/ 기준)
           - reference-file.md   #   또는 경로 (./relative, /absolute)
         input:                  # optional - step 이름 또는 파일 경로
           - prev-step-name      #   step 이름 → {output-dir}/{name}.md
@@ -215,7 +232,7 @@ flow:
 | 필드 | 기준 경로 | 용도 |
 |---|---|---|
 | `details` | `src/details/` → 빌드 시 `references/`로 복사 | 워크플로우에 응집된 로컬 참조 |
-| `refs` | `~/.claude/references/` (또는 직접 경로) | 여러 워크플로우가 공유하는 글로벌 참조 |
+| `refs` | `$AGENT_HOME/references/` (또는 직접 경로) | 여러 워크플로우가 공유하는 글로벌 참조 |
 
 **현재 정의된 workflow**
 
@@ -256,7 +273,7 @@ flow:
 | `protect-branch-git.sh` | `git commit`, `push`, `merge`, `rebase`, `reset` |
 | `protect-worktree-bash.sh` | worktree 경계 밖 Bash 작업 |
 
-차단 시 `/worktree-entry-workflow`로 worktree를 생성하도록 안내한다.
+차단 시 worktree를 생성하도록 안내한다.
 
 ---
 
@@ -273,23 +290,23 @@ flow:
 
 ---
 
-## 설치
+## 빠른 시작
 
-### 플러그인으로 설치 (권장)
+### 설치
 
 ```bash
 git clone https://github.com/Iol-lshh/dynamic-builder.git
 cd dynamic-builder
-bash .setup/claude/scripts/install.sh            # 전체 설치 (각 단계 확인)
-bash .setup/claude/scripts/install.sh --force    # 확인 없이 전체 설치
+bash .setup/scripts/install.sh                        # 전체 설치 (타겟 선택 → 각 단계 확인)
+bash .setup/scripts/install.sh --target claude --force # 확인 없이 claude만 설치
 ```
 
-개별 설치:
+개별 타겟 설치:
 
 ```bash
-bash .setup/claude/scripts/install.sh --plugin   # 플러그인만
-bash .setup/claude/scripts/install.sh --settings # hooks/settings만
-bash .setup/claude/scripts/install.sh --build    # 빌드만
+bash .setup/scripts/install.sh --target claude         # claude만
+bash .setup/scripts/install.sh --target gemini         # gemini만
+bash .setup/scripts/install.sh --target claude,gemini  # 둘 다
 ```
 
 설치 후 스킬 사용:
@@ -303,8 +320,8 @@ bash .setup/claude/scripts/install.sh --build    # 빌드만
 ### 제거
 
 ```bash
-bash .setup/claude/scripts/uninstall.sh          # 대화형 확인 후 제거
-bash .setup/claude/scripts/uninstall.sh --force  # 확인 없이 제거
+bash .setup/scripts/uninstall.sh          # 대화형 확인 후 제거
+bash .setup/scripts/uninstall.sh --force  # 확인 없이 제거
 ```
 
 또는 설치된 상태에서: `/dynamic-builder:uninstall`

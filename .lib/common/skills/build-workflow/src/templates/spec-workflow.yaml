@@ -1,0 +1,47 @@
+define:
+  steps:
+    - spec-analyze-A:
+        desc: "자연어 요구사항을 유스케이스 관점에서 구조화된 요구사항 문서로 변환한다"
+        details:
+          - usecase-rules.md
+          - output-format.md
+        agent: usecase-analyst
+    - spec-analyze-B:
+        desc: "자연어 요구사항을 도메인 모델 관점에서 구조화된 요구사항 문서로 변환한다"
+        details:
+          - usecase-rules.md
+        agent: domain-analyst
+
+    - spec-synthesis:
+        desc: "분석 결과를 통합하여 분석 내용 초고를 작성한다"
+        input:
+          - spec-analyze-A
+          - spec-analyze-B
+        agent: scope-reduction-reconciler
+
+    - spec-retrospect:
+        desc: "분석 결과를 통합하여 분석 내용 회고를 작성한다"
+        input:
+          - spec-synthesis
+        agent: scope-reduction-reconciler
+
+    - spec-review:
+        desc: "요구사항 문서의 유스케이스 완전성과 행위 흐름을 채점하고 개선 방향을 제시한다"
+        details:
+          - usecase-rules.md
+        input:
+          - spec-retrospect
+        agent: usecase-evaluator
+
+flow:
+  - parallel:
+    - spec-analyze-A
+    - spec-analyze-B
+  - spec-synthesis
+  - retry:
+      condition: score < 80
+      max: 3
+      flow:
+        - spec-retrospect
+        - spec-review
+  - hitl
