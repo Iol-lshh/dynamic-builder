@@ -17,9 +17,10 @@ dynamic-builder/
 │   ├── clean/                  ← 빌드 산출물 삭제
 │   ├── clean-worktree/         ← worktree 정리
 │   └── uninstall/              ← 플러그인 제거
-├── .setup/                     ← 설치/환경 구성
-│   ├── hooks/
-│   └── scripts/
+├── .setup/
+│   └── claude/                 ← 설치/환경 구성
+│       ├── hooks/
+│       └── scripts/
 └── references/                 ← agent가 참조하는 공통 문서
 ```
 
@@ -84,10 +85,10 @@ dynamic-builder/
 | 프로젝트 밖 | 기본+글로벌 → `~/.claude/` | 글로벌 인덱스 → `~/.claude/` 삭제 |
 | 프로젝트 안 | 기본+글로벌 → `~/.claude/` + 프로젝트 → `{project}/.claude/` | 글로벌 + 프로젝트 인덱스 삭제 |
 
-### Hooks/Settings (.setup/)
+### Hooks/Settings (.setup/claude/)
 
 ```
-.setup/
+.setup/claude/
   hooks/
     protect-branch-file.sh    ← 보호 브랜치 파일 수정 차단
     protect-branch-git.sh     ← 보호 브랜치 git 작업 차단
@@ -279,16 +280,16 @@ flow:
 ```bash
 git clone https://github.com/Iol-lshh/dynamic-builder.git
 cd dynamic-builder
-bash .setup/scripts/install.sh            # 전체 설치 (각 단계 확인)
-bash .setup/scripts/install.sh --force    # 확인 없이 전체 설치
+bash .setup/claude/scripts/install.sh            # 전체 설치 (각 단계 확인)
+bash .setup/claude/scripts/install.sh --force    # 확인 없이 전체 설치
 ```
 
 개별 설치:
 
 ```bash
-bash .setup/scripts/install.sh --plugin   # 플러그인만
-bash .setup/scripts/install.sh --settings # hooks/settings만
-bash .setup/scripts/install.sh --build    # 빌드만
+bash .setup/claude/scripts/install.sh --plugin   # 플러그인만
+bash .setup/claude/scripts/install.sh --settings # hooks/settings만
+bash .setup/claude/scripts/install.sh --build    # 빌드만
 ```
 
 설치 후 스킬 사용:
@@ -302,8 +303,8 @@ bash .setup/scripts/install.sh --build    # 빌드만
 ### 제거
 
 ```bash
-bash .setup/scripts/uninstall.sh          # 대화형 확인 후 제거
-bash .setup/scripts/uninstall.sh --force  # 확인 없이 제거
+bash .setup/claude/scripts/uninstall.sh          # 대화형 확인 후 제거
+bash .setup/claude/scripts/uninstall.sh --force  # 확인 없이 제거
 ```
 
 또는 설치된 상태에서: `/dynamic-builder:uninstall`

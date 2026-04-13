@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # install-plugin — dynamic-builder 플러그인을 ~/.claude/plugins/marketplaces/에 설치한다
 # 사용법:
-#   bash .setup/scripts/install-plugin.sh
+#   bash .setup/claude/scripts/install-plugin.sh
 
 set -euo pipefail
 
-REPO_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+REPO_DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
 PLUGIN_NAME="dynamic-builder"
 MARKETPLACE_DIR="${HOME}/.claude/plugins/marketplaces"
 PLUGIN_DIR="$MARKETPLACE_DIR/$PLUGIN_NAME"

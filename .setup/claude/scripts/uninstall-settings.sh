@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # uninstall-settings — hooks와 settings.json에서 dynamic-builder 설정을 제거한다
 # 사용법:
-#   bash .setup/scripts/uninstall-settings.sh           # 대화형 확인
-#   bash .setup/scripts/uninstall-settings.sh --force   # 확인 없이 제거
+#   bash .setup/claude/scripts/uninstall-settings.sh           # 대화형 확인
+#   bash .setup/claude/scripts/uninstall-settings.sh --force   # 확인 없이 제거
 
 set -euo pipefail
 
@@ -22,7 +22,7 @@ echo "=== Uninstall Settings ($PLUGIN_NAME) ==="
 echo ""
 
 # ── hooks 제거 ────────────────────────────────────────────
-SRC_HOOKS="$(cd "$(dirname "$0")/../.." && pwd)/.setup/hooks"
+SRC_HOOKS="$(cd "$(dirname "$0")/../../.." && pwd)/.setup/claude/hooks"
 if [[ -d "$SRC_HOOKS" ]]; then
   for src in "$SRC_HOOKS"/*; do
     h="$(basename "$src")"

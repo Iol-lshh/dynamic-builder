@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # install — dynamic-builder 플러그인 설치
 # 사용법:
-#   bash .setup/scripts/install.sh            # 전체 설치 (각 단계 확인)
-#   bash .setup/scripts/install.sh --force    # 확인 없이 전체 설치
-#   bash .setup/scripts/install.sh --plugin   # 플러그인만
-#   bash .setup/scripts/install.sh --settings # hooks/settings만
-#   bash .setup/scripts/install.sh --build    # 빌드만
+#   bash .setup/claude/scripts/install.sh            # 전체 설치 (각 단계 확인)
+#   bash .setup/claude/scripts/install.sh --force    # 확인 없이 전체 설치
+#   bash .setup/claude/scripts/install.sh --plugin   # 플러그인만
+#   bash .setup/claude/scripts/install.sh --settings # hooks/settings만
+#   bash .setup/claude/scripts/install.sh --build    # 빌드만
 
 set -euo pipefail
 

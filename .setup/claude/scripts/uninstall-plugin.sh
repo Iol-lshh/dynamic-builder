@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # uninstall-plugin — dynamic-builder 플러그인 디렉토리를 제거하고 settings.json에서 등록을 해제한다
 # 사용법:
-#   bash .setup/scripts/uninstall-plugin.sh           # 대화형 확인
-#   bash .setup/scripts/uninstall-plugin.sh --force   # 확인 없이 제거
+#   bash .setup/claude/scripts/uninstall-plugin.sh           # 대화형 확인
+#   bash .setup/claude/scripts/uninstall-plugin.sh --force   # 확인 없이 제거
 
 set -euo pipefail
 

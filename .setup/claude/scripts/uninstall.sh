@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # uninstall — dynamic-builder를 완전히 제거한다
 # 사용법:
-#   bash .setup/scripts/uninstall.sh              # 전체 제거 (각 단계 확인)
-#   bash .setup/scripts/uninstall.sh --force      # 확인 없이 전체 제거
-#   bash .setup/scripts/uninstall.sh --plugin     # 플러그인만
-#   bash .setup/scripts/uninstall.sh --settings   # hooks/settings만
-#   bash .setup/scripts/uninstall.sh --build      # 빌드 산출물만
+#   bash .setup/claude/scripts/uninstall.sh              # 전체 제거 (각 단계 확인)
+#   bash .setup/claude/scripts/uninstall.sh --force      # 확인 없이 전체 제거
+#   bash .setup/claude/scripts/uninstall.sh --plugin     # 플러그인만
+#   bash .setup/claude/scripts/uninstall.sh --settings   # hooks/settings만
+#   bash .setup/claude/scripts/uninstall.sh --build      # 빌드 산출물만
 
 set -euo pipefail
 
