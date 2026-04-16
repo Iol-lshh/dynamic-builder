@@ -1,0 +1,160 @@
+# External params:
+#   pr-stack-plan: pr-stack-plan-template.md 서식을 따르는 PR 스택 계획서
+#   current-pr-index: 현재 처리할 PR 인덱스 (0-based)
+#   backup-branch: 전체 변경이 보존된 백업 브랜치
+
+define:
+  agents:
+    - git-reconciler: git-history-reconciler
+    - git-validator: git-history-validator
+    - code-evaluator: code-level-evaluator
+  steps:
+    # Phase 1: 분석
+    - branch-state-analyze:
+        desc: "백업 브랜치 대비 현재 브랜치 상태의 diff를 분석한다. 이전 PR에서 적용된 변경과 남은 변경을 식별한다"
+        agent: git-history-analyst
+        details:
+          - branch-state-analyze-guide.md
+          - pr-stack-plan-template.md
+        input:
+          - pr-stack-plan
+          - current-pr-index
+          - backup-branch
+        output: branch-state-analyze.md
+
+    - impact-analyze:
+        desc: "이전 PR의 수정/피드백이 현재 PR 대상 파일에 미치는 코드 수준 영향을 분석한다"
+        agent: code-level-analyst
+        details:
+          - impact-analyze-guide.md
+          - pr-stack-plan-template.md
+        input:
+          - pr-stack-plan
+          - current-pr-index
+          - backup-branch
+        output: impact-analyze.md
+
+    - impact-synthesize:
+        desc: "branch-state와 impact 분석 결과를 통합하여 현재 PR의 실행 조건을 정리한다"
+        agent: git-reconciler
+        details:
+          - impact-synthesize-guide.md
+        input:
+          - branch-state-analyze
+          - impact-analyze
+          - pr-stack-plan
+        output: impact-synthesize.md
+
+    - impact-retrospect:
+        desc: "통합 결과의 누락 영향, 충돌 가능성, 잘못된 가정을 점검하고 수정한다"
+        agent: git-reconciler
+        details:
+          - impact-retrospect-guide.md
+        input:
+          - impact-synthesize
+        output: impact-retrospect.md
+
+    - impact-review:
+        desc: "영향 분석 통합 결과의 정확성, 완전성을 채점한다"
+        agent: code-evaluator
+        details:
+          - impact-review-guide.md
+        input:
+          - impact-retrospect
+        output: impact-review.md
+
+    # Phase 2: 계획
+    - branch-plan:
+        desc: "현재 PR에 필요한 cherry-pick/checkout/patch 전략을 수립한다. 파일별 적용 방법과 순서를 결정한다"
+        agent: git-history-planner
+        details:
+          - branch-plan-guide.md
+          - pr-stack-plan-template.md
+        input:
+          - impact-retrospect
+        output: branch-plan.md
+
+    - branch-plan-validate:
+        desc: "브랜치 계획의 충돌 가능성, 누락 파일, git 명령 순서 정합성을 검증한다"
+        agent: git-validator
+        details:
+          - branch-plan-validate-guide.md
+        input:
+          - branch-plan
+          - impact-retrospect
+        output: branch-plan-validate.md
+
+    - branch-plan-review:
+        desc: "브랜치 계획의 품질을 평가한다. 전략 적합성, 명령 순서 정확성, 충돌 대응 완전성을 채점한다"
+        agent: code-evaluator
+        details:
+          - branch-plan-review-guide.md
+        input:
+          - branch-plan
+          - branch-plan-validate
+        output: branch-plan-review.md
+
+    # Phase 3: 구현
+    - branch-build:
+        desc: "git 브랜치를 생성하고 계획에 따라 cherry-pick/checkout/patch를 실행한다"
+        agent: git-history-builder
+        details:
+          - branch-build-guide.md
+        input:
+          - branch-plan
+          - backup-branch
+          - current-pr-index
+        output: branch-build.md
+
+    - branch-validate:
+        desc: "생성된 브랜치의 git status/diff를 검증한다. 의도한 파일만 포함되었는지, 누락/초과를 확인한다"
+        agent: git-validator
+        details:
+          - branch-validate-guide.md
+        input:
+          - branch-build
+          - branch-plan
+        output: branch-validate.md
+
+    - branch-review:
+        desc: "생성된 브랜치의 코드 완전성을 평가한다. import 누락, 빌드 가능성, 테스트 통과 가능성을 채점한다"
+        agent: code-evaluator
+        details:
+          - branch-review-guide.md
+        input:
+          - branch-build
+          - branch-plan
+          - impact-retrospect
+        output: branch-review.md
+
+flow:
+  # Phase 1: 분석
+  - parallel:
+    - branch-state-analyze
+    - impact-analyze
+  - impact-synthesize
+  - retry:
+      condition: score < 80
+      max: 2
+      flow:
+        - impact-retrospect
+        - impact-review
+  - hitl
+  # Phase 2: 계획
+  - retry:
+      condition: score < 80
+      max: 2
+      flow:
+        - branch-plan
+        - branch-plan-validate
+        - branch-plan-review
+  - hitl
+  # Phase 3: 구현
+  - retry:
+      condition: score < 80
+      max: 3
+      flow:
+        - branch-build
+        - branch-validate
+        - branch-review
+  - hitl

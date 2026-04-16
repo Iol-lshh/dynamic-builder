@@ -1,0 +1,82 @@
+# External params:
+#   base-branch: 비교 기준 브랜치 (예: main)
+#   backup-branch: 전체 변경이 보존된 백업 브랜치
+
+define:
+  agents:
+    - git-reconciler: git-history-reconciler
+  steps:
+    - git-diff-analyze:
+        desc: "git diff/log에서 변경 파일 목록, 커밋별 변경 내역, 파일별 변경 통계를 추출한다"
+        agent: git-history-analyst
+        details:
+          - git-diff-analyze-guide.md
+        input:
+          - base-branch
+          - backup-branch
+        output: git-diff-analyze.md
+
+    - code-dep-analyze:
+        desc: "변경된 파일 간 import/export, 함수 호출 의존성 그래프를 분석한다"
+        agent: code-level-analyst
+        details:
+          - code-dep-analyze-guide.md
+        input:
+          - base-branch
+          - backup-branch
+        output: code-dep-analyze.md
+
+    - pr-topic-analyze:
+        desc: "변경사항을 논리적 PR 주제로 분류한다. 기능 단위, 리팩토링, 버그 수정 등 카테고리 기반 그룹핑"
+        agent: scope-reduction-analyst
+        details:
+          - pr-topic-analyze-guide.md
+        input:
+          - base-branch
+          - backup-branch
+        output: pr-topic-analyze.md
+
+    - plan-synthesize:
+        desc: "3개 분석 결과를 통합하여 PR 스택 계획 초안을 작성한다. PR 순서, 파일 배정, 겹침 해소 전략, 의존성 순서를 결정한다. 최종 산출물은 pr-stack-plan-template.md 서식을 따라야 한다"
+        agent: git-reconciler
+        details:
+          - plan-synthesize-guide.md
+          - pr-stack-plan-template.md
+        input:
+          - git-diff-analyze
+          - code-dep-analyze
+          - pr-topic-analyze
+        output: plan-synthesize.md
+
+    - plan-retrospect:
+        desc: "계획 초안의 누락 의존성, 순서 모순, 파일 배정 충돌을 점검하고 수정한다. 수정 결과는 pr-stack-plan-template.md 서식을 준수해야 한다"
+        agent: git-reconciler
+        details:
+          - plan-retrospect-guide.md
+          - pr-stack-plan-template.md
+        input:
+          - plan-synthesize
+        output: plan-retrospect.md
+
+    - plan-review:
+        desc: "PR 스택 계획의 품질을 평가한다. 의존성 무결성, 파일 누락, 순서 적합성을 채점한다"
+        agent: code-level-evaluator
+        details:
+          - plan-review-guide.md
+        input:
+          - plan-retrospect
+        output: plan-review.md
+
+flow:
+  - parallel:
+    - git-diff-analyze
+    - code-dep-analyze
+    - pr-topic-analyze
+  - plan-synthesize
+  - retry:
+      condition: score < 80
+      max: 2
+      flow:
+        - plan-retrospect
+        - plan-review
+  - hitl
