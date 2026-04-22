@@ -19,8 +19,8 @@ define:
           - spec-analyze-B
         agent: scope-reduction-reconciler
 
-    - spec-retrospect:
-        desc: "분석 결과를 통합하여 분석 내용 회고를 작성한다"
+    - spec-revise:
+        desc: "분석 결과와 리뷰 피드백을 반영하여 수정한다"
         input:
           - spec-synthesis
         agent: scope-reduction-reconciler
@@ -30,7 +30,7 @@ define:
         details:
           - usecase-rules.md
         input:
-          - spec-retrospect
+          - spec-revise
         agent: usecase-evaluator
 
 flow:
@@ -42,6 +42,6 @@ flow:
       condition: score < 80
       max: 3
       flow:
-        - spec-retrospect
+        - spec-revise
         - spec-review
   - hitl

@@ -96,8 +96,8 @@ define:
           - ew-draft-analyze-dct
         agent: essay-writing-reconciler
 
-    # 2-4. 회고 (분석을 반영한 수정본)
-    - ew-retrospect:
+    # 2-4. 수정 (리뷰 피드백 반영)
+    - ew-revise:
         desc: "원고를 수정·개선한다"
         input:
           - ew-draft-synthesize
@@ -109,7 +109,7 @@ define:
         details:
           - ew-scoring-criteria.md
         input:
-          - ew-retrospect
+          - ew-revise
         agent: essay-writing-evaluator
 
 flow:
@@ -136,6 +136,6 @@ flow:
       condition: score < 80
       max: 2
       flow:
-        - ew-retrospect
+        - ew-revise
         - ew-review
   - hitl

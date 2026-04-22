@@ -78,9 +78,9 @@ ctx-script-collection 결과를 기반으로 작성한다.
 - 분석 결과 간 불일치가 있으면 식별하고 조율한다
 - 중복 정보는 가장 적합한 섹션에 한 번만 기록한다
 
-## ctx-retrospect 전용 지침
+## ctx-revise 전용 지침
 
-ctx-retrospect는 ctx-review의 평가 피드백을 반영하여 문서를 재작성하는 스텝이다.
+ctx-revise는 ctx-review의 평가 피드백을 반영하여 문서를 재작성하는 스텝이다.
 
 ### 피드백 반영 우선순위
 

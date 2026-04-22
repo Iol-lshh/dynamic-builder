@@ -39,7 +39,7 @@ define:
           - ctx-synthesis
         agent: task-lifecycle-evaluator
 
-    - ctx-retrospect:
+    - ctx-revise:
         desc: "평가 피드백을 반영하여 통합 문서를 재작성한다"
         details:
           - synthesis-output-format.md
@@ -62,6 +62,6 @@ flow:
       condition: score < 80
       max: 2
       flow:
-        - ctx-retrospect
+        - ctx-revise
         - ctx-review
   - hitl

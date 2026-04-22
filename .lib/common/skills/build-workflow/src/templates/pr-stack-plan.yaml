@@ -48,15 +48,15 @@ define:
           - pr-topic-analyze
         output: plan-synthesize.md
 
-    - plan-retrospect:
+    - plan-revise:
         desc: "계획 초안의 누락 의존성, 순서 모순, 파일 배정 충돌을 점검하고 수정한다. 수정 결과는 pr-stack-plan-template.md 서식을 준수해야 한다"
         agent: git-reconciler
         details:
-          - plan-retrospect-guide.md
+          - plan-revise-guide.md
           - pr-stack-plan-template.md
         input:
           - plan-synthesize
-        output: plan-retrospect.md
+        output: plan-revise.md
 
     - plan-review:
         desc: "PR 스택 계획의 품질을 평가한다. 의존성 무결성, 파일 누락, 순서 적합성을 채점한다"
@@ -64,7 +64,7 @@ define:
         details:
           - plan-review-guide.md
         input:
-          - plan-retrospect
+          - plan-revise
         output: plan-review.md
 
 flow:
@@ -77,6 +77,6 @@ flow:
       condition: score < 80
       max: 2
       flow:
-        - plan-retrospect
+        - plan-revise
         - plan-review
   - hitl

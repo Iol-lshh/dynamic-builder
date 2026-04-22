@@ -45,14 +45,14 @@ define:
           - pr-stack-plan
         output: impact-synthesize.md
 
-    - impact-retrospect:
+    - impact-revise:
         desc: "통합 결과의 누락 영향, 충돌 가능성, 잘못된 가정을 점검하고 수정한다"
         agent: git-reconciler
         details:
-          - impact-retrospect-guide.md
+          - impact-revise-guide.md
         input:
           - impact-synthesize
-        output: impact-retrospect.md
+        output: impact-revise.md
 
     - impact-review:
         desc: "영향 분석 통합 결과의 정확성, 완전성을 채점한다"
@@ -60,7 +60,7 @@ define:
         details:
           - impact-review-guide.md
         input:
-          - impact-retrospect
+          - impact-revise
         output: impact-review.md
 
     # Phase 2: 계획
@@ -71,7 +71,7 @@ define:
           - branch-plan-guide.md
           - pr-stack-plan-template.md
         input:
-          - impact-retrospect
+          - impact-revise
         output: branch-plan.md
 
     - branch-plan-validate:
@@ -81,7 +81,7 @@ define:
           - branch-plan-validate-guide.md
         input:
           - branch-plan
-          - impact-retrospect
+          - impact-revise
         output: branch-plan-validate.md
 
     - branch-plan-review:
@@ -124,7 +124,7 @@ define:
         input:
           - branch-build
           - branch-plan
-          - impact-retrospect
+          - impact-revise
         output: branch-review.md
 
 flow:
@@ -137,7 +137,7 @@ flow:
       condition: score < 80
       max: 2
       flow:
-        - impact-retrospect
+        - impact-revise
         - impact-review
   - hitl
   # Phase 2: 계획

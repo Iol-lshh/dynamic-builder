@@ -60,7 +60,7 @@ flow:
       condition: score < 80
       max: 2
       flow:
-        - retrospect
+        - revise
         - review
   - hitl
 ```
@@ -68,9 +68,9 @@ flow:
 **특징:**
 - 스텝 5~8개
 - 병렬 분석 2~3개
-- retrospect 통합 및 회고, 병렬 분석 결과 입력 (retry시 리뷰 결과 추가)
-- review 품질 게이트, 회고 결과 입력
-- retry 2회 (회고 루프)
+- revise 리뷰 피드백을 반영하여 수정, 병렬 분석 결과 입력 (retry시 리뷰 결과 추가)
+- review 품질 게이트, 수정 결과 입력
+- retry 2회 (수정 루프)
 - HITL 1개
 
 **적합한 작업 예시:**
@@ -102,7 +102,7 @@ flow:
       condition: score < 80
       max: 2
       flow:
-        - retrospect
+        - revise
         - review
   - hitl
   # Phase 2: 계획
@@ -130,7 +130,7 @@ flow:
 - 3개 페이즈 (분석 → 설계 → 구현)
 - 각 페이즈에 retry + validate 또는 evaluator
 - HITL 3개 (페이즈 전환점마다)
-- 다른 관점의 병렬 분석 및 반복 회고 + 평가로 품질 확보
+- 다른 관점의 병렬 분석 및 반복 수정 + 평가로 품질 확보
 - planner + validator로 설계 정확성 확보
 - builder + validator + evaluator로 구현 정확성, 품질 확보
 - 검증과 평가를 병렬 처리
@@ -167,7 +167,7 @@ flow:
       condition: hitl
       flow:
         - hitl
-        - retrospect
+        - revise
   # Phase 3: 답변 분석 → 산출물 생성
   - retry:
       condition: score < 80
@@ -184,7 +184,7 @@ flow:
 - 스텝 10~12개
 - 2개 페이즈 (질문 도출 → 산출물 생성)
 - Phase 1: 병렬 분석으로 질문 생성 → 통합
-- Phase 2: 회고 → 사용자 답변 수집
+- Phase 2: 질문 수정 → 사용자 답변 수집
 - Phase 3: 답변 분석 → 산출물 작성 → 검증 → 평가
 - HITL 최소 2개 (답변 수집 + 최종 확인)
 - Tier 2와 달리 **사용자 답변이 분석의 핵심 입력**
