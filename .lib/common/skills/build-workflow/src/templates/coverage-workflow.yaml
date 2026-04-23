@@ -27,7 +27,7 @@ define:
     - coverage-analyze-review:
         desc: "수정 결과의 품질을 평가하고 개선 방향을 제시한다"
         details:
-          - code-level-scoring-criteria.md
+          - analysis-scoring-criteria.md
         input:
           - coverage-revise
         agent: code-level-evaluator
@@ -69,7 +69,7 @@ define:
         desc: "통과된 테스트의 품질을 채점하고 개선 방향을 제시한다"
         details:
           - condition-coverage-rules.md
-          - code-level-scoring-criteria.md
+          - test-scoring-criteria.md
         input:
           - coverage-plan
           - coverage-test

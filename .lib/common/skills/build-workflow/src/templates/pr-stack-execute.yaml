@@ -59,7 +59,7 @@ define:
         agent: code-evaluator
         details:
           - impact-review-guide.md
-          - code-level-scoring-criteria.md
+          - analysis-scoring-criteria.md
         input:
           - impact-revise
         output: impact-review.md
@@ -91,7 +91,7 @@ define:
         agent: code-evaluator
         details:
           - branch-plan-review-guide.md
-          - code-level-scoring-criteria.md
+          - plan-scoring-criteria.md
         input:
           - branch-plan
           - branch-plan-validate
@@ -125,7 +125,7 @@ define:
         agent: code-evaluator
         details:
           - branch-review-guide.md
-          - code-level-scoring-criteria.md
+          - build-completeness-scoring-criteria.md
         input:
           - branch-build
           - branch-plan
