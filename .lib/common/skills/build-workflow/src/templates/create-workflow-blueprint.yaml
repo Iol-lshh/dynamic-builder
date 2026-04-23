@@ -57,6 +57,9 @@ define:
         details:
           - workflow-template-guide.md
           - agent-template-guide.md
+        refs:
+          - evidence-rules/yaml-parsing.md
+          - evidence-rules/spec-citation.md
         input:
           - build
         agent: workflow-design-validator

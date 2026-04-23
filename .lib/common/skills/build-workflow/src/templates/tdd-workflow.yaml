@@ -36,6 +36,8 @@ define:
 
     - tdd-test-plan-validate:
         desc: "테스트 계획의 완전성과 규칙 준수를 검증한다 (합격/불합격)"
+        refs:
+          - evidence-rules/spec-citation.md
         input:
           - tdd-test-plan
         agent: code-level-validator
@@ -49,6 +51,9 @@ define:
 
     - tdd-test-validate:
         desc: "작성된 테스트의 컴파일과 코딩 규칙 준수를 검증한다 (합격/불합격)"
+        refs:
+          - evidence-rules/code-execution.md
+          - evidence-rules/spec-citation.md
         input:
           - tdd-test-plan
           - tdd-test
@@ -56,6 +61,8 @@ define:
 
     - tdd-test-review:
         desc: "검증 통과된 테스트의 품질을 채점하고 개선 방향을 제시한다"
+        details:
+          - code-level-scoring-criteria.md
         input:
           - tdd-test-plan
           - tdd-test
@@ -70,12 +77,17 @@ define:
 
     - tdd-implement-validate:
         desc: "구현된 코드의 컴파일, 테스트 통과, 코딩 규칙 준수를 검증한다 (합격/불합격)"
+        refs:
+          - evidence-rules/code-execution.md
+          - evidence-rules/spec-citation.md
         input:
           - tdd-implement
         agent: code-level-validator
 
     - tdd-implement-review:
         desc: "검증 통과된 코드의 설계 품질을 채점하고 개선 방향을 제시한다"
+        details:
+          - code-level-scoring-criteria.md
         input:
           - tdd-implement
         agent: code-level-evaluator

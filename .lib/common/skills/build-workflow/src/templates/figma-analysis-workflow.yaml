@@ -102,6 +102,8 @@ define:
         agent: usecase-validator
         details:
           - figma-validate-completeness-details.md
+        refs:
+          - evidence-rules/spec-citation.md
         input:
           - merge-dep-priority
           - apply-advice

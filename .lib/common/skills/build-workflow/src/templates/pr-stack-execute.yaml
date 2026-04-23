@@ -79,6 +79,8 @@ define:
         agent: git-validator
         details:
           - branch-plan-validate-guide.md
+        refs:
+          - evidence-rules/git-command.md
         input:
           - branch-plan
           - impact-revise
@@ -111,6 +113,8 @@ define:
         agent: git-validator
         details:
           - branch-validate-guide.md
+        refs:
+          - evidence-rules/git-command.md
         input:
           - branch-build
           - branch-plan
