@@ -54,9 +54,8 @@ define:
         desc: "리포트 구조 규칙 준수 검증: ASIS/TOBE 존재, 왜/무엇을/어떻게 완전성, 간략+확장 구조. 합격/불합격"
         details:
           - report-validation-rules.md
-        refs:
-          - evidence-rules/yaml-parsing.md
-          - evidence-rules/spec-citation.md
+          - evidence-yaml-parsing.md
+          - evidence-spec-citation.md
         input:
           - report-draft
         agent: workflow-design-validator

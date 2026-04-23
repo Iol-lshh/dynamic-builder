@@ -65,9 +65,8 @@ define:
           - hybrids-store-state.md
           - hybrids-ui-patterns.md
           - hybrids-page-entry.md
-        refs:
-          - evidence-rules/ui-artifact.md
-          - evidence-rules/spec-citation.md
+          - evidence-ui-artifact.md
+          - evidence-spec-citation.md
         input:
           - page-plan
         agent: uiux-validator
@@ -103,9 +102,8 @@ define:
           - hybrids-store-state.md
           - hybrids-ui-patterns.md
           - hybrids-page-entry.md
-        refs:
-          - evidence-rules/ui-artifact.md
-          - evidence-rules/spec-citation.md
+          - evidence-ui-artifact.md
+          - evidence-spec-citation.md
         agent: uiux-validator
         input:
           - page-plan

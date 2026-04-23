@@ -41,7 +41,7 @@ disallowedTools: [Edit]
 - agent 자신의 서술·요약·재구성은 증거로 인정하지 않는다 (self-report 금지)
 - 증거는 **원문 그대로** 인용한다 — 발췌·의역·"...생략..."은 위반
 - 증거 없는 주장은 P0 위반으로 처리한다
-- 증거 종류별 구체 포맷은 step에 바인딩된 `refs` (evidence-rules)를 따른다
+- 증거 종류별 구체 포맷은 step에 바인딩된 `details` (evidence-*.md)를 따른다
 
 ## 산출물
 

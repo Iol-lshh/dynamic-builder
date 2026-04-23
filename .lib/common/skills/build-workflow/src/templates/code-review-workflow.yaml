@@ -37,8 +37,8 @@ define:
     # Phase 3: 검증 + 평가
     - validate:
         desc: "통합된 리뷰 결과에서 치명적(CRITICAL) 이슈 존재 여부를 판정한다. CRITICAL 이슈가 1개 이상이면 FAIL, 없으면 PASS"
-        refs:
-          - evidence-rules/spec-citation.md
+        details:
+          - evidence-spec-citation.md
         input:
           - reconcile
         agent: code-level-validator
